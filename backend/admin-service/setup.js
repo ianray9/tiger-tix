@@ -15,7 +15,7 @@ const db = new sqlite3.Database(dbPath, (error) => {
         console.error("Could not open database:", error.message);
         process.exit(1);
     }
-    console.log("Connect to database")
+    console.log("Connected to database")
 
     // Create data base tables
     db.exec(sqlText, (error) => {
