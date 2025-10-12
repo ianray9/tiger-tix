@@ -7,6 +7,7 @@ const db = new sqlite3.Database(dbPath, (error) => {
     if (error) {
         return console.error(error.message);
     }
+    else console.log('Connected to shared SQLite database.');
 });
 
 // Purpose: Insert a event entry into the events database
@@ -19,7 +20,7 @@ const db = new sqlite3.Database(dbPath, (error) => {
 //              - capacity: max amount of people that can attend event 
 //              (availableTickets will be set to capacity initally)
 //         callback - function to callback once db async funct is finished
-// Output: returns callback with error message if failed or null 
+// Output: Returns callback with error message if failed or null 
 // for error and inserted event info if iserted successfuly
 const insertEvent = (eventInfo, callback) => {
     const { title, description, startTime, endTime, venue, capacity } = eventInfo;
@@ -54,7 +55,7 @@ const insertEvent = (eventInfo, callback) => {
 //              - capacity: max amount of people that can attend event 
 //              - availableTickets: number of tickets left for event
 //         callback - function to callback once db async funct is finished
-// Output: returns callback with error message if failed or null 
+// Output: Returns callback with error message if failed or null 
 // for error and updated event info if iserted successfuly
 const updateEvent = (eventID, eventInfo, callback) => {
     const { title, description, startTime, endTime, venue, capacity, availableTickets } = eventInfo;
