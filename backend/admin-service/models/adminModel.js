@@ -38,16 +38,16 @@ const insertEvent = (eventInfo, callback) => {
                 return callback(error);
             }
             console.log(`Inserted a event with ID: ${this.lastID}`);
-            return callback(null, { eventID: this.lastID, ...eventInfo });
+            return callback(null, { eventId: this.lastID, ...eventInfo });
         }
     );
 }
 
 // Purpose: Update information of a current event in the database
 //
-// Inputs: eventID - the ID of the event to be updated
+// Inputs: eventId - the ID of the event to be updated
 //         eventInfo - contains the info of the event to be inserted
-//              - eventID: id of event to be updated
+//              - eventId: id of event to be updated
 //              - title: name of event, description: short description of event
 //              - startTime: start time in ISO 8601 format "YYYY-MM-DDTHH:MM:SS"
 //              - endTime: end time in ISO 8601 format "YYYY-MM-DDTHH:MM:SS"
@@ -57,14 +57,14 @@ const insertEvent = (eventInfo, callback) => {
 //         callback - function to callback once db async funct is finished
 // Output: Returns callback with error message if failed or null 
 // for error and updated event info if iserted successfuly
-const updateEvent = (eventID, eventInfo, callback) => {
+const updateEvent = (eventId, eventInfo, callback) => {
     const { title, description, startTime, endTime, venue, capacity, availableTickets } = eventInfo;
 
     db.run(
         `UPDATE events SET title = ?, description = ?, startTime = ?,
          endTime = ?, venue = ?, capacity = ?, availableTickets = ?
-         WHERE eventID = ?`,
-        [title, description, startTime, endTime, venue, capacity, availableTickets, eventID],
+         WHERE eventId = ?`,
+        [title, description, startTime, endTime, venue, capacity, availableTickets, eventId],
         function(error) {
             if (error) {
                 console.error(error.message);
@@ -75,7 +75,7 @@ const updateEvent = (eventID, eventInfo, callback) => {
                 return callback(new Error("Event not found"))
             }
             console.log(`Updated a event with ID: ${this.lastID}`);
-            return callback(null, { eventID, ...eventInfo });
+            return callback(null, { eventId, ...eventInfo });
         }
     );
 }
