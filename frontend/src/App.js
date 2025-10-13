@@ -36,7 +36,7 @@ function App() {
       // Update UI: reduce ticket count
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
-          event.id === eventId
+          event.eventId === eventId
             ? { ...event, availableTickets: event.availableTickets - 1 }
             : event
         )
@@ -72,26 +72,26 @@ function App() {
           {events.length > 0 ? (
             <ul aria-live="polite" aria-label="List of campus events">
               {events.map((event) => (
-                <li key={event.id}>
+                <li key={event.eventId}>
                   <article
-                    aria-label={`Event: ${event.name}`}
+                    aria-label={`Event: ${event.title}`}
                     tabIndex="0"
                     className="event-item"
                   >
                     <p>
-                      <strong>{event.name}</strong> — {event.date}
+                      <strong>{event.title}</strong> — {event.startTime}
                     </p>
                     <p>Tickets Available: {event.availableTickets}</p>
 
                     {/* Accessible button with clear label */}
                     <button
-                      onClick={() => buyTicket(event.id, event.name)}
-                      aria-label={`Buy ticket for ${event.name}`}
+                      onClick={() => buyTicket(event.eventId, event.title)}
+                      aria-label={`Buy ticket for ${event.title}`}
                       className="buy-button"
                       disabled={event.availableTickets <= 0}
                     >
                       {event.availableTickets > 0
-                        ? `Buy Ticket for ${event.name}`
+                        ? `Buy Ticket for ${event.title}`
                         : 'Sold Out'}
                     </button>
                   </article>
