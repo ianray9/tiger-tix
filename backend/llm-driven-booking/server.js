@@ -7,18 +7,16 @@ const { getAvailableEvents, getEventByName, getEventById, bookTickets } = requir
 const app = express();
 app.use(bodyParser.json());
 
-// 1) Greeting endpoint (optional)
+
 app.get('/api/llm/greet', (req, res) => {
   return res.json({ message: "Hi — I'm TigerTix assistant. I can show events and prepare bookings. What would you like to do?" });
 });
 
-// 2) Show events (convenience)
 app.get('/api/events', (req, res) => {
   const events = getAvailableEvents();
   res.json({ events });
 });
 
-// 3) Parse natural language (does NOT book)
 app.post('/api/llm/parse', async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'Missing text in body' });
