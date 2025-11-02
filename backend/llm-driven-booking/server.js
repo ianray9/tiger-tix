@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const { askLLMToParse } = require('./llmService');
+const { askLLMToParse } = require('./llmParseService');
 const { getAvailableEvents, getEventByName, getEventById, bookTickets } = require('./db');
 
 const app = express();

@@ -1,22 +1,43 @@
 require('dotenv').config();
 const OpenAI = require('openai');
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
+// Initialize OpenAI client if key exists
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+/**
+ * askLLMToParse
+ * ----------------
+ * Accepts a natural language text (like "Book two tickets for Jazz Night")
+ * and returns a structured JSON object:
+ *   { intent: "book"|"list"|"unknown", event: string|null, tickets: number|null }
+ */
 async function askLLMToParse(text) {
   const prompt = `
 You are a JSON-only parser for ticket booking requests.
-Parse the user message and respond ONLY with a valid JSON object:
-{ "intent": "book" | "list" | "unknown", "event": string or null, "tickets": number or null }
+Respond ONLY with a valid JSON object and nothing else.
+
+Output format:
+{
+  "intent": "book" | "list" | "unknown",
+  "event": string | null,
+  "tickets": number | null
+}
 
 Examples:
 "Book two tickets for Jazz Night." -> {"intent":"book","event":"Jazz Night","tickets":2}
 "Show me the events." -> {"intent":"list","event":null,"tickets":null}
 "Hey" -> {"intent":"unknown","event":null,"tickets":null}
 
-User: "${text}"
+User input: "${text}"
 `;
 
-  if (!openai) return fallbackParse(text);
+  // If no OpenAI key, use fallback parser
+  if (!openai) {
+    console.warn("⚠️ No OpenAI API key found, using fallback parser.");
+    return fallbackParse(text);
+  }
 
   try {
     const resp = await openai.chat.completions.create({
@@ -26,31 +47,57 @@ User: "${text}"
       temperature: 0
     });
 
-    const content = resp.choices?.[0]?.message?.content || "";
-    const jsonText = content.slice(content.indexOf("{"));
-    const parsed = JSON.parse(jsonText);
-    if (parsed.intent) return parsed;
-  } catch (err) {
-    console.warn("LLM parse failed:", err.message);
-  }
+    const raw = resp.choices?.[0]?.message?.content?.trim() || "";
+    const jsonStart = raw.indexOf("{");
+    const jsonEnd = raw.lastIndexOf("}");
+    const jsonStr = raw.slice(jsonStart, jsonEnd + 1);
 
-  return fallbackParse(text);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (jsonErr) {
+      console.warn("⚠️ JSON parse error from LLM output:", raw);
+      return fallbackParse(text);
+    }
+
+    // Normalize response
+    return {
+      intent: parsed.intent || "unknown",
+      event: parsed.event || null,
+      tickets: parsed.tickets || null
+    };
+  } catch (err) {
+    console.error("❌ LLM request failed:", err.message);
+    return fallbackParse(text);
+  }
 }
 
+/**
+ * fallbackParse
+ * ----------------
+ * Simple keyword-based and regex parsing for offline or error fallback.
+ */
 function fallbackParse(text) {
-  const t = text.toLowerCase();
-  if (/(show|list|events|available)/.test(t))
+  const lower = text.toLowerCase();
+
+  // Case 1: show/list events
+  if (/(show|list|events|available)/.test(lower)) {
     return { intent: "list", event: null, tickets: null };
+  }
 
-  const numMatch = t.match(/(\d+)\s*(tickets?|seats?)/);
-  const tickets = numMatch ? parseInt(numMatch[1], 10) : null;
+  // Case 2: book tickets
+  const ticketMatch = lower.match(/(\d+)\s*(tickets?|seats?)/);
+  const tickets = ticketMatch ? parseInt(ticketMatch[1], 10) : null;
 
+  // Extract event name after "for"
   const eventMatch = text.match(/for\s+(.+)$/i);
   const event = eventMatch ? eventMatch[1].replace(/\.$/, '').trim() : null;
 
-  if (event || tickets)
+  if (event || tickets) {
     return { intent: "book", event: event || null, tickets: tickets || 1 };
+  }
 
+  // Case 3: unrecognized input
   return { intent: "unknown", event: null, tickets: null };
 }
 
