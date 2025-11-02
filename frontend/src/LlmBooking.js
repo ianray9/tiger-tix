@@ -1,24 +1,50 @@
 import React, { useState } from 'react';
+import './LlmBooking.css';
 
 export default function LlmBooking() {
   const [input, setInput] = useState('');
   const [parsed, setParsed] = useState(null);
   const [status, setStatus] = useState('');
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { sender: 'bot', text: 'Hi there! I can help you book tickets for campus events. Try typing “Book two tickets for Jazz Night.”' }
+  ]);
 
   async function handleParse() {
+    if (!input.trim()) return;
+    const userMsg = { sender: 'user', text: input };
+    setMessages(prev => [...prev, userMsg]);
     setStatus('Parsing…');
-    const resp = await fetch('/api/llm/parse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: input })
-    });
-    const data = await resp.json();
-    if (!resp.ok) {
-      setStatus(data.error || 'Could not parse');
-      return;
+
+    try {
+      const resp = await fetch('/api/llm/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: input })
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        const errMsg = { sender: 'bot', text: data.error || 'Could not parse your request.' };
+        setMessages(prev => [...prev, errMsg]);
+        setStatus('');
+        return;
+      }
+
+      setParsed(data.parsed);
+      setStatus('');
+
+      // Add structured JSON as assistant reply
+      setMessages(prev => [
+        ...prev,
+        { sender: 'bot', text: `Here’s what I understood: ${JSON.stringify(data.parsed, null, 2)}` }
+      ]);
+    } catch (err) {
+      setMessages(prev => [...prev, { sender: 'bot', text: 'Error connecting to LLM service.' }]);
     }
-    setParsed(data.parsed);
-    setStatus('');
+
+    setInput('');
   }
 
   async function handleConfirm() {
@@ -27,43 +53,61 @@ export default function LlmBooking() {
     const body = {
       quantity: parsed.tickets,
       event_id: parsed.event_id,
-      event_name: parsed.event // fallback if id missing
+      event_name: parsed.event
     };
+
     const resp = await fetch('/api/llm/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
     const data = await resp.json();
+
     if (resp.ok) {
-      setStatus(`Booked! confirmation id: ${data.bookingId}`);
+      setMessages(prev => [...prev, { sender: 'bot', text: `✅ Booking confirmed! ID: ${data.bookingId}` }]);
       setParsed(null);
-      setInput('');
     } else {
-      setStatus(data.error || 'Booking failed');
+      setMessages(prev => [...prev, { sender: 'bot', text: data.error || 'Booking failed.' }]);
     }
+    setStatus('');
   }
 
   return (
-    <div>
-      <h3>LLM Booking Assistant</h3>
-      <input value={input} onChange={e => setInput(e.target.value)} placeholder="e.g. Book two tickets for Jazz Night" />
-      <button onClick={handleParse}>Parse</button>
-
-      {parsed && (
-        <div role="region" aria-live="polite">
-          {parsed.intent === 'list' && <div>I can show events. <a href="/api/events">View events</a></div>}
-          {parsed.intent === 'book' && (
-            <div>
-              <p>I'll book <strong>{parsed.tickets || 1}</strong> tickets for <strong>{parsed.event || parsed.event_name || 'Unknown event'}</strong>.</p>
-              <button onClick={handleConfirm}>Confirm Booking</button>
-            </div>
-          )}
-          {parsed.intent === 'unknown' && <div>Sorry, I didn't understand. Try "Book 2 tickets for Jazz Night".</div>}
+    <>
+      <div className={`chatbot-container ${open ? 'open' : ''}`}>
+        <div className="chat-header" onClick={() => setOpen(!open)}>
+          💬 LLM Assistant
         </div>
-      )}
 
-      <div aria-live="polite">{status}</div>
-    </div>
+        {open && (
+          <div className="chat-body">
+            <div className="messages">
+              {messages.map((msg, i) => (
+                <div key={i} className={`message ${msg.sender}`}>
+                  {msg.text}
+                </div>
+              ))}
+            </div>
+
+            {parsed?.intent === 'book' && (
+              <button className="confirm-btn" onClick={handleConfirm}>
+                Confirm Booking
+              </button>
+            )}
+
+            <div className="input-area">
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Ask me about events..."
+                onKeyDown={e => e.key === 'Enter' && handleParse()}
+              />
+              <button onClick={handleParse}>Send</button>
+            </div>
+            {status && <div className="status">{status}</div>}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
