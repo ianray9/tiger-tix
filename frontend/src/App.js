@@ -105,6 +105,10 @@ function App() {
             </p>
           )}
         </section>
+        <section aria-labelledby="assistant-heading" style={{ marginTop: '2rem' }}>
+        <h2 id="assistant-heading">Chat Assistant</h2>
+        <LlmBooking />
+      </section>
       </main>
     </div>
   );
