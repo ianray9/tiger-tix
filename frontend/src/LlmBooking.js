@@ -76,7 +76,7 @@ export default function LlmBooking() {
     <>
       <div className={`chatbot-container ${open ? 'open' : ''}`}>
         <div className="chat-header" onClick={() => setOpen(!open)}>
-          💬 LLM Assistant
+          Booking Assistant
         </div>
 
         {open && (
