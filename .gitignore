@@ -4,5 +4,10 @@ npm-debug.log
 
 # database
 *.sqlite
+:memory
 
+# IDEs
+.vscode
 
+# macos
+.DS_Store

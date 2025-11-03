@@ -1,14 +1,27 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.resolve('backend/shared-db/database.sqlite');
-console.log(dbPath);
-const db = new sqlite3.Database(dbPath, (error) => {
-    if (error) {
-        return console.error(error.message);
-    }
-    else console.log('Connected to shared SQLite database.');
-});
+let db;
+
+const dbPath =
+    process.env.NODE_ENV === 'test'
+        ? ':memory:' // Use in-memory DB when testing
+        : path.resolve('backend/shared-db/database.sqlite');
+
+// Initialize database only if not provided by initDB (in tests)
+if (!process.env.TEST_DB) {
+    db = new sqlite3.Database(dbPath, (error) => {
+        if (error) {
+            return console.error('Database connection error:', error.message);
+        } else {
+            console.log(`Connected to ${process.env.NODE_ENV === 'test' ? 'in-memory' : 'shared'} SQLite database.`);
+        }
+    });
+}
+
+const initDB = (database) => {
+    db = database;
+};
 
 // Purpose: Get all events in the shared database
 //
@@ -66,4 +79,4 @@ const purchaseTicket = (eventID) => {
     });
 }
 
-module.exports = { getAllEvents, purchaseTicket };
+module.exports = { getAllEvents, purchaseTicket, initDB };

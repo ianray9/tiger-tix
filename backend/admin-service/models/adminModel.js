@@ -3,12 +3,16 @@ const sqlite3 = require("sqlite3").verbose();
 
 const dbPath = path.resolve("backend/shared-db/database.sqlite");
 
-const db = new sqlite3.Database(dbPath, (error) => {
-    if (error) {
-        return console.error(error.message);
-    }
-    else console.log('Connected to shared SQLite database.');
+let db = new sqlite3.Database(dbPath, (error) => {
+    if (error) return console.error(error.message);
+    console.log('Connected to shared SQLite database.');
 });
+
+const initDB = (customDB) => {
+    if (customDB) {
+        db = customDB;
+    }
+};
 
 // Purpose: Insert a event entry into the events database
 //
@@ -80,4 +84,4 @@ const updateEvent = (eventId, eventInfo, callback) => {
     );
 }
 
-module.exports = { insertEvent, updateEvent };
+module.exports = { insertEvent, updateEvent, initDB };
