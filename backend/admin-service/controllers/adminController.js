@@ -50,8 +50,12 @@ const editEvent = (req, res) => {
 
     updateEvent(eventId, eventInfo, (error, result) => {
         if (error) {
+            if (error.message === "Event not found") {
+                return res.status(404).json({ error: 'Could not find event' });
+            }
             return res.status(500).json({ error: 'Could not update event' });
         }
+
         res.status(200).json({ message: 'Successfully updated event', event: result });
     });
 };
