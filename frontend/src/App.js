@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import LlmBooking from "./LlmBooking";
+import LlmVoice from "./LlmVoice";  
+import './LlmVoice.css';
 
 function App() {
   const [events, setEvents] = useState([]);
@@ -108,6 +110,16 @@ function App() {
 
       </main>
       <LlmBooking />
+      <LlmVoice
+        onTranscript={(text) => {
+          // Automatically insert recognized voice text into chatbot input
+          const inputField = document.querySelector('.input-area input');
+          if (inputField) {
+            inputField.value = text;
+            inputField.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }}
+      />
     </div>
   );
 }
