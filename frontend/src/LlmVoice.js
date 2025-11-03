@@ -24,6 +24,7 @@ export default function LlmVoice({ onTranscript }) {
       const text = event.results[0][0].transcript;
       setTranscript(text);
       if (onTranscript) onTranscript(text);
+      speak(text);
     };
 
     recognition.start();
