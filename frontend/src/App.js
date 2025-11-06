@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import LlmBooking from "./LlmBooking";
-import LlmVoice from "./LlmVoice";  
+import LlmVoice from "./LlmVoice";
 import './LlmVoice.css';
 
 function App() {
   const [events, setEvents] = useState([]);
   const [message, setMessage] = useState('');
 
-  // Fetch events from the client microservice (port 6001)
-  useEffect(() => {
+  // ✅ Centralized fetch function so UI can refresh
+  const fetchEvents = () => {
     fetch('http://localhost:6001/api/events')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch events');
@@ -20,9 +20,25 @@ function App() {
         console.error(err);
         setMessage('Could not load events.');
       });
+  };
+
+  // ✅ Load events on first page load
+  useEffect(() => {
+    fetchEvents();
   }, []);
 
-  // Updated to actually purchase a ticket
+  // ✅ Refresh events whenever LLM completes a booking
+  useEffect(() => {
+    const handler = () => {
+      console.log("LLM booking detected → refreshing events");
+      fetchEvents();
+    };
+
+    window.addEventListener('llm-booked', handler);
+    return () => window.removeEventListener('llm-booked', handler);
+  }, []);
+
+  // ✅ Standard buy ticket (manual UI button)
   const buyTicket = async (eventId, eventName) => {
     try {
       const response = await fetch(`http://localhost:6001/api/events/${eventId}/purchase`, {
@@ -36,14 +52,8 @@ function App() {
         throw new Error(result.error || 'Purchase failed');
       }
 
-      // Update UI: reduce ticket count
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.eventId === eventId
-            ? { ...event, availableTickets: event.availableTickets - 1 }
-            : event
-        )
-      );
+      // ✅ After purchase, refresh list
+      fetchEvents();
 
       setMessage(`Ticket purchased for: ${eventName}`);
     } catch (err) {
@@ -54,24 +64,20 @@ function App() {
 
   return (
     <div className="App">
-      {/* Semantic heading structure */}
       <header>
         <h1 tabIndex="0">Clemson Campus Events</h1>
       </header>
 
-      {/* Section landmark for events list */}
       <main role="main">
         <section aria-labelledby="events-heading">
           <h2 id="events-heading" tabIndex="0">Available Events</h2>
 
-          {/* Optional message display */}
           {message && (
             <p role="alert" style={{ color: 'green' }}>
               {message}
             </p>
           )}
 
-          {/* Use semantic list structure with ARIA labeling */}
           {events.length > 0 ? (
             <ul aria-live="polite" aria-label="List of campus events">
               {events.map((event) => (
@@ -86,7 +92,6 @@ function App() {
                     </p>
                     <p>Tickets Available: {event.availableTickets}</p>
 
-                    {/* Accessible button with clear label */}
                     <button
                       onClick={() => buyTicket(event.eventId, event.title)}
                       aria-label={`Buy ticket for ${event.title}`}
@@ -107,12 +112,11 @@ function App() {
             </p>
           )}
         </section>
-
       </main>
+
       <LlmBooking />
       <LlmVoice
         onTranscript={(text) => {
-          // Automatically insert recognized voice text into chatbot input
           const inputField = document.querySelector('.input-area input');
           if (inputField) {
             inputField.value = text;

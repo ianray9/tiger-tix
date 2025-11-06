@@ -7,7 +7,10 @@ export default function LlmBooking() {
   const [status, setStatus] = useState('');
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { sender: 'bot', text: 'Hi there! I can help you book tickets for campus events. Try typing “Book two tickets for Jazz Night.”' }
+    {
+      sender: 'bot',
+      text: 'Hi there! I can help you book tickets for campus events. Try typing “Book two tickets for Jazz Night.”'
+    }
   ]);
 
   async function handleParse() {
@@ -35,7 +38,6 @@ export default function LlmBooking() {
       setParsed(data.parsed);
       setStatus('');
 
-      // Add structured JSON as assistant reply
       setMessages(prev => [
         ...prev,
         { sender: 'bot', text: `Here’s what I understood: ${JSON.stringify(data.parsed, null, 2)}` }
@@ -50,6 +52,7 @@ export default function LlmBooking() {
   async function handleConfirm() {
     if (!parsed || parsed.intent !== 'book') return;
     setStatus('Booking…');
+
     const body = {
       quantity: parsed.tickets,
       event_id: parsed.event_id,
@@ -61,53 +64,57 @@ export default function LlmBooking() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+
     const data = await resp.json();
 
     if (resp.ok) {
       setMessages(prev => [...prev, { sender: 'bot', text: `✅ Booking confirmed! ID: ${data.bookingId}` }]);
       setParsed(null);
+
+      // ✅ Trigger UI refresh of ticket counts
+      window.dispatchEvent(new Event('llm-booked'));
     } else {
       setMessages(prev => [...prev, { sender: 'bot', text: data.error || 'Booking failed.' }]);
     }
+
     setStatus('');
   }
 
   return (
-    <>
-      <div className={`chatbot-container ${open ? 'open' : ''}`}>
-        <div className="chat-header" onClick={() => setOpen(!open)}>
-          Booking Assistant
-        </div>
-
-        {open && (
-          <div className="chat-body">
-            <div className="messages">
-              {messages.map((msg, i) => (
-                <div key={i} className={`message ${msg.sender}`}>
-                  {msg.text}
-                </div>
-              ))}
-            </div>
-
-            {parsed?.intent === 'book' && (
-              <button className="confirm-btn" onClick={handleConfirm}>
-                Confirm Booking
-              </button>
-            )}
-
-            <div className="input-area">
-              <input
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Ask me about events..."
-                onKeyDown={e => e.key === 'Enter' && handleParse()}
-              />
-              <button onClick={handleParse}>Send</button>
-            </div>
-            {status && <div className="status">{status}</div>}
-          </div>
-        )}
+    <div className={`chatbot-container ${open ? 'open' : ''}`}>
+      <div className="chat-header" onClick={() => setOpen(!open)}>
+        Booking Assistant
       </div>
-    </>
+
+      {open && (
+        <div className="chat-body">
+          <div className="messages">
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.sender}`}>
+                {msg.text}
+              </div>
+            ))}
+          </div>
+
+          {parsed?.intent === 'book' && (
+            <button className="confirm-btn" onClick={handleConfirm}>
+              Confirm Booking
+            </button>
+          )}
+
+          <div className="input-area">
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Ask me about events..."
+              onKeyDown={e => e.key === 'Enter' && handleParse()}
+            />
+            <button onClick={handleParse}>Send</button>
+          </div>
+
+          {status && <div className="status">{status}</div>}
+        </div>
+      )}
+    </div>
   );
 }

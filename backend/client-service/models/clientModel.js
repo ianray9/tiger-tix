@@ -5,14 +5,16 @@ let db;
 
 const dbPath =
     process.env.NODE_ENV === 'test'
-        ? ':memory:' // Use in-memory DB when testing
-        : path.resolve('backend/shared-db/database.sqlite');
+        ? ':memory:'
+        : path.resolve(__dirname, '../../shared-db/database.sqlite');
+        
+console.log("CLIENT SERVICE DB PATH:", dbPath);
 
-// Initialize database only if not provided by initDB (in tests)
+// Initialize DB unless running tests
 if (!process.env.TEST_DB) {
     db = new sqlite3.Database(dbPath, (error) => {
         if (error) {
-            return console.error('Database connection error:', error.message);
+            console.error('Database connection error:', error.message);
         } else {
             console.log(`Connected to ${process.env.NODE_ENV === 'test' ? 'in-memory' : 'shared'} SQLite database.`);
         }
@@ -23,60 +25,89 @@ const initDB = (database) => {
     db = database;
 };
 
-// Purpose: Get all events in the shared database
-//
-// Output: Returns a promise that if resolved will return the rows of 
-// events and else the error received from the database
+/**
+ * ✅ GET ALL EVENTS
+ * This returns:
+ * - eventId            (mapped from id)
+ * - title
+ * - startTime
+ * - availableTickets   (computed)
+ */
 const getAllEvents = () => {
     return new Promise((resolve, reject) => {
-        db.all('SELECT * FROM events', [], (error, rows) => {
-            if (error) reject(error);
-            else resolve(rows);
-        });
+        db.all(
+            `
+            SELECT 
+                id AS eventId,
+                title,
+                start_time AS startTime,
+                (total_tickets - tickets_sold) AS availableTickets
+            FROM events
+            ORDER BY start_time ASC, id ASC
+            `,
+            [],
+            (error, rows) => {
+                if (error) reject(error);
+                else resolve(rows);
+            }
+        );
     });
-}
+};
 
-// Purpose: Update an event's info to show one less available ticket
-// Inputs: eventID - the id of the event to decrease available tickets
-//
-// Output: Returns promise with success message if resolved and the error
-// message from the database if rejected
-const purchaseTicket = (eventID) => {
+/**
+ * ✅ PURCHASE A TICKET
+ * Decreases tickets_sold by 1
+ */
+const purchaseTicket = (eventId) => {
     return new Promise((resolve, reject) => {
         db.serialize(() => {
-            db.run('BEGIN TRANSACTION');
-            db.get('SELECT availableTickets FROM events WHERE eventID = ?', [eventID], (error, event) => {
-                if (error) {
-                    db.run('ROLLBACK');
-                    return reject(error);
-                }
+            db.run('BEGIN IMMEDIATE TRANSACTION');
 
-                if (!event) {
-                    db.run('ROLLBACK');
-                    return reject(new Error('Event not found'));
-                }
-
-                if (event.availableTickets <= 0) {
-                    db.run('ROLLBACK');
-                    return reject(new Error('No tickets available'));
-                }
-
-                db.run(
-                    'UPDATE events SET availableTickets = availableTickets - 1 WHERE eventID = ?',
-                    [eventID],
-                    function(error) {
-                        if (error) {
-                            db.run('ROLLBACK');
-                            return reject(error);
-                        }
-
-                        db.run('COMMIT');
-                        resolve({ message: 'Ticket purchased successfully' });
+            db.get(
+                `
+                SELECT total_tickets, tickets_sold
+                FROM events
+                WHERE id = ?
+                `,
+                [eventId],
+                (error, event) => {
+                    if (error) {
+                        db.run('ROLLBACK');
+                        return reject(error);
                     }
-                );
-            });
+
+                    if (!event) {
+                        db.run('ROLLBACK');
+                        return reject(new Error('Event not found'));
+                    }
+
+                    const remaining = event.total_tickets - event.tickets_sold;
+                    if (remaining <= 0) {
+                        db.run('ROLLBACK');
+                        return reject(new Error('No tickets available'));
+                    }
+
+                    db.run(
+                        `
+                        UPDATE events
+                        SET tickets_sold = tickets_sold + 1
+                        WHERE id = ?
+                        `,
+                        [eventId],
+                        function (updateError) {
+                            if (updateError) {
+                                db.run('ROLLBACK');
+                                return reject(updateError);
+                            }
+
+                            db.run('COMMIT');
+                            resolve({ message: 'Ticket purchased successfully' });
+                        }
+                    );
+                }
+            );
         });
     });
-}
+};
 
 module.exports = { getAllEvents, purchaseTicket, initDB };
