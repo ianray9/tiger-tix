@@ -7,7 +7,7 @@ const dbPath =
     process.env.NODE_ENV === 'test'
         ? ':memory:'
         : path.resolve(__dirname, '../../shared-db/database.sqlite');
-        
+
 console.log("CLIENT SERVICE DB PATH:", dbPath);
 
 // Initialize DB unless running tests
@@ -26,7 +26,7 @@ const initDB = (database) => {
 };
 
 /**
- * ✅ GET ALL EVENTS
+ * GET ALL EVENTS
  * This returns:
  * - eventId            (mapped from id)
  * - title
@@ -38,12 +38,12 @@ const getAllEvents = () => {
         db.all(
             `
             SELECT 
-                id AS eventId,
+                eventId,
                 title,
-                start_time AS startTime,
-                (total_tickets - tickets_sold) AS availableTickets
+                startTime,
+                availableTickets
             FROM events
-            ORDER BY start_time ASC, id ASC
+            ORDER BY startTime ASC, eventId ASC
             `,
             [],
             (error, rows) => {
@@ -94,7 +94,7 @@ const purchaseTicket = (eventId) => {
                         WHERE id = ?
                         `,
                         [eventId],
-                        function (updateError) {
+                        function(updateError) {
                             if (updateError) {
                                 db.run('ROLLBACK');
                                 return reject(updateError);
