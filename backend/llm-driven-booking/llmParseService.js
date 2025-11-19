@@ -64,12 +64,56 @@ User input: "${text}"
     return {
       intent: parsed.intent || "unknown",
       event: parsed.event || null,
-      tickets: parsed.tickets || null
+      tickets: parsed.tickets ?? null
     };
   } catch (err) {
     console.error("❌ LLM request failed:", err.message);
     return fallbackParse(text);
   }
+}
+
+/**
+ * extractTicketQuantity
+ * ----------------
+ * Tries to find a ticket quantity from digits ("2 tickets")
+ * or number words ("two tickets", "a ticket").
+ */
+function extractTicketQuantity(text) {
+  const lower = text.toLowerCase();
+
+  // 1) Look for a digit: "2 tickets", "3 seats"
+  const digitMatch = lower.match(/\b(\d+)\s*(tickets?|seats?)\b/);
+  if (digitMatch) {
+    return parseInt(digitMatch[1], 10);
+  }
+
+  // 2) Look for small number words: "two tickets", "a pair of seats"
+  const wordToNumber = {
+    one: 1,
+    a: 1,        // "a ticket"
+    an: 1,
+    two: 2,
+    pair: 2,
+    couple: 2,
+    three: 3,
+    four: 4,
+    five: 5,
+    six: 6,
+    seven: 7,
+    eight: 8,
+    nine: 9,
+    ten: 10
+  };
+
+  for (const [word, value] of Object.entries(wordToNumber)) {
+    const re = new RegExp(`\\b${word}\\b\\s*(tickets?|seats?)`);
+    if (re.test(lower)) {
+      return value;
+    }
+  }
+
+  // 3) No explicit quantity found
+  return null;
 }
 
 /**
@@ -86,15 +130,19 @@ function fallbackParse(text) {
   }
 
   // Case 2: book tickets
-  const ticketMatch = lower.match(/(\d+)\s*(tickets?|seats?)/);
-  const tickets = ticketMatch ? parseInt(ticketMatch[1], 10) : null;
+  const tickets = extractTicketQuantity(text);
 
   // Extract event name after "for"
   const eventMatch = text.match(/for\s+(.+)$/i);
-  const event = eventMatch ? eventMatch[1].replace(/\.$/, '').trim() : null;
+  const event = eventMatch ? eventMatch[1].replace(/\.$/, "").trim() : null;
 
-  if (event || tickets) {
-    return { intent: "book", event: event || null, tickets: tickets || 1 };
+  if (event || tickets !== null) {
+    return {
+      intent: "book",
+      event: event || null,
+      // default to 1 only if booking but no explicit quantity
+      tickets: tickets !== null ? tickets : 1
+    };
   }
 
   // Case 3: unrecognized input

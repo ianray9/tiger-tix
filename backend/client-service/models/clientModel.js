@@ -54,60 +54,58 @@ const getAllEvents = () => {
     });
 };
 
-/**
- * ✅ PURCHASE A TICKET
- * Decreases tickets_sold by 1
- */
 const purchaseTicket = (eventId) => {
-    return new Promise((resolve, reject) => {
-        db.serialize(() => {
-            db.run('BEGIN IMMEDIATE TRANSACTION');
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
 
-            db.get(
-                `
-                SELECT total_tickets, tickets_sold
-                FROM events
-                WHERE id = ?
-                `,
-                [eventId],
-                (error, event) => {
-                    if (error) {
-                        db.run('ROLLBACK');
-                        return reject(error);
-                    }
+      db.get(
+        `
+        SELECT capacity, availableTickets
+        FROM events
+        WHERE eventId = ?
+        `,
+        [eventId],
+        (error, event) => {
+          if (error) {
+            db.run('ROLLBACK');
+            return reject(error);
+          }
 
-                    if (!event) {
-                        db.run('ROLLBACK');
-                        return reject(new Error('Event not found'));
-                    }
+          if (!event) {
+            db.run('ROLLBACK');
+            return reject(new Error('Event not found'));
+          }
 
-                    const remaining = event.total_tickets - event.tickets_sold;
-                    if (remaining <= 0) {
-                        db.run('ROLLBACK');
-                        return reject(new Error('No tickets available'));
-                    }
+          if (event.availableTickets <= 0) {
+            db.run('ROLLBACK');
+            return reject(new Error('No tickets available'));
+          }
 
-                    db.run(
-                        `
-                        UPDATE events
-                        SET tickets_sold = tickets_sold + 1
-                        WHERE id = ?
-                        `,
-                        [eventId],
-                        function(updateError) {
-                            if (updateError) {
-                                db.run('ROLLBACK');
-                                return reject(updateError);
-                            }
+          db.run(
+            `
+            UPDATE events
+            SET availableTickets = availableTickets - 1
+            WHERE eventId = ?
+            `,
+            [eventId],
+            function (updateError) {
+              if (updateError) {
+                db.run('ROLLBACK');
+                return reject(updateError);
+              }
 
-                            db.run('COMMIT');
-                            resolve({ message: 'Ticket purchased successfully' });
-                        }
-                    );
-                }
-            );
-        });
+              db.run('COMMIT', (commitErr) => {
+                if (commitErr) return reject(commitErr);
+                resolve({ message: 'Ticket purchased successfully' });
+              });
+            }
+          );
+        }
+      );
     });
+  });
 };
+
 
 module.exports = { getAllEvents, purchaseTicket, initDB };

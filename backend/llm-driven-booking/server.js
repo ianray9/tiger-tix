@@ -35,19 +35,19 @@ app.post('/api/llm/parse', async (req, res) => {
       return res.status(422).json({ error: 'Unable to parse request' });
     }
 
-    // If intent = "book", try to identify event
-    if (parsed.intent === 'book' && parsed.event) {
-      const event = getEventByName(parsed.event);
+  // If intent = "book", try to identify event
+if (parsed.intent === 'book' && parsed.event) {
+  const event = await getEventByName(parsed.event);
 
-      if (event) {
-        parsed.event_id = event.id;
-        parsed.remaining = event.total_tickets - event.tickets_sold;
-      } else {
-        parsed.event_id = null; // event unknown → user must clarify
-      }
-    }
+  if (event) {
+    parsed.event_id = event.eventId;
+    parsed.remaining = event.availableTickets;
+  } else {
+    parsed.event_id = null;
+  }
+}
 
-    return res.json({ parsed });
+return res.json({ parsed });
   } catch (err) {
     console.error('❌ Parse error:', err);
     return res.status(500).json({ error: 'Server error while parsing input.' });
@@ -63,19 +63,22 @@ app.post('/api/llm/confirm', async (req, res) => {
   }
 
   try {
-    // Step 1: identify event
     let event = null;
-    if (event_id) event = getEventById(event_id);
-    else if (event_name) event = getEventByName(event_name);
+    if (event_id) event = await getEventById(event_id);
+    else if (event_name) event = await getEventByName(event_name);
 
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    // Step 2: attempt booking
     try {
-      const bookingId = bookTickets(event.id, qty);
-      return res.json({ success: true, bookingId });
+      const bookingResult = await bookTickets(event.eventId, qty);
+
+      return res.json({
+        success: true,
+        event: { eventId: event.eventId, title: event.title },
+        remaining: bookingResult.remaining
+      });
     } catch (err) {
       if (err.message === 'NotEnoughTickets') {
         return res.status(409).json({ error: 'Not enough tickets available' });

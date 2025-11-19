@@ -1,25 +1,24 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// ✅ Correct shared DB path
 const dbPath = process.env.SQLITE_PATH || path.join(__dirname, '../shared-db/database.sqlite');
 const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) console.error("LLM DB connection error:", err.message);
-  else console.log("LLM connected to SQLite database.");
+  if (err) console.error('LLM DB connection error:', err.message);
+  else console.log('LLM connected to SQLite database.');
 });
 
-// ✅ Get all events
+// Get all events (optional helper)
 function getAvailableEvents() {
   return new Promise((resolve, reject) => {
     db.all(
       `
-      SELECT 
-        id AS eventId,
+      SELECT
+        eventId,
         title,
-        start_time AS startTime,
-        (total_tickets - tickets_sold) AS remaining
+        startTime,
+        availableTickets
       FROM events
-      ORDER BY id ASC
+      ORDER BY startTime ASC, eventId ASC
       `,
       [],
       (err, rows) => {
@@ -30,80 +29,102 @@ function getAvailableEvents() {
   });
 }
 
-// ✅ Get event by NAME
 function getEventByName(title) {
   return new Promise((resolve, reject) => {
     db.get(
-      `SELECT * FROM events WHERE LOWER(title) = LOWER(?)`,
+      `
+      SELECT
+        eventId,
+        title,
+        startTime,
+        description,
+        venue,
+        capacity,
+        availableTickets
+      FROM events
+      WHERE LOWER(title) = LOWER(?)
+      ORDER BY startTime ASC, eventId ASC
+      `,
       [title],
       (err, row) => {
         if (err) reject(err);
-        else resolve(row);
+        else resolve(row || null);
       }
     );
   });
 }
 
-// ✅ Get event by ID
-function getEventById(id) {
+function getEventById(eventId) {
   return new Promise((resolve, reject) => {
     db.get(
-      `SELECT * FROM events WHERE id = ?`,
-      [id],
+      `
+      SELECT
+        eventId,
+        title,
+        startTime,
+        description,
+        venue,
+        capacity,
+        availableTickets
+      FROM events
+      WHERE eventId = ?
+      `,
+      [eventId],
       (err, row) => {
         if (err) reject(err);
-        else resolve(row);
+        else resolve(row || null);
       }
     );
   });
 }
 
-// ✅ Book tickets using real schema (transactions)
 function bookTickets(eventId, quantity) {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      // ✅ Read event
+      db.run('BEGIN TRANSACTION');
+
       db.get(
-        `SELECT total_tickets, tickets_sold FROM events WHERE id = ?`,
+        `
+        SELECT capacity, availableTickets
+        FROM events
+        WHERE eventId = ?
+        `,
         [eventId],
         (err, event) => {
-          if (err) return reject(err);
-          if (!event) return reject(new Error("EventNotFound"));
+          if (err) {
+            db.run('ROLLBACK');
+            return reject(err);
+          }
 
-          const remaining = event.total_tickets - event.tickets_sold;
-          if (remaining < quantity) return reject(new Error("NotEnoughTickets"));
+          if (!event) {
+            db.run('ROLLBACK');
+            return reject(new Error('EventNotFound'));
+          }
 
-          // ✅ Start transaction
-          db.run("BEGIN TRANSACTION");
+          if (event.availableTickets < quantity) {
+            db.run('ROLLBACK');
+            return reject(new Error('NotEnoughTickets'));
+          }
 
-          // ✅ Update sold count
           db.run(
             `
             UPDATE events
-            SET tickets_sold = tickets_sold + ?
-            WHERE id = ?
+            SET availableTickets = availableTickets - ?
+            WHERE eventId = ?
             `,
             [quantity, eventId],
-            (err2) => {
-              if (err2) {
-                db.run("ROLLBACK");
-                return reject(err2);
+            function (updateErr) {
+              if (updateErr) {
+                db.run('ROLLBACK');
+                return reject(updateErr);
               }
 
-              // ✅ Insert into bookings table
-              db.run(
-                `INSERT INTO bookings (event_id, quantity) VALUES (?, ?)`,
-                [eventId, quantity],
-                function (err3) {
-                  if (err3) {
-                    db.run("ROLLBACK");
-                    return reject(err3);
-                  }
+              db.run('COMMIT', (commitErr) => {
+                if (commitErr) return reject(commitErr);
 
-                  db.run("COMMIT");
-                  resolve(this.lastID);
-                }
-              );
+                const remaining = event.availableTickets - quantity;
+                resolve({ eventId, remaining });
+              });
             }
           );
         }

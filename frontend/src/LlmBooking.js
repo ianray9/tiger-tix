@@ -67,15 +67,24 @@ export default function LlmBooking() {
 
     const data = await resp.json();
 
-    if (resp.ok) {
-      setMessages(prev => [...prev, { sender: 'bot', text: `✅ Booking confirmed! ID: ${data.bookingId}` }]);
+    if (resp.ok && data.success) {
+      const name = data.event?.title || parsed.event || 'your event';
+      const remainingText =
+      typeof data.remaining === 'number'
+        ? ` Tickets remaining: ${data.remaining}.`
+        : '';
+
+     setMessages(prev => [
+      ...prev,
+        { sender: 'bot', text: `✅ Booking confirmed for ${name}.${remainingText}` }
+      ]);
       setParsed(null);
 
-      // ✅ Trigger UI refresh of ticket counts
-      window.dispatchEvent(new Event('llm-booked'));
+    // Refresh event list so the seat count updates
+    window.dispatchEvent(new Event('llm-booked'));
     } else {
-      setMessages(prev => [...prev, { sender: 'bot', text: data.error || 'Booking failed.' }]);
-    }
+    setMessages(prev => [...prev, { sender: 'bot', text: data.error || 'Booking failed.' }]);
+    } 
 
     setStatus('');
   }
