@@ -1,6 +1,9 @@
+const express = require("express");
+
 const { createTestDB } = require("./setupTest");
 const { getAllEvents, purchaseTicket, initDB } = require("../models/clientModel");
 
+let app;
 let testDB;
 let eventId1;
 let eventId2;
@@ -66,7 +69,7 @@ afterAll((done) => {
     testDB.close(done);
 });
 
-describe("Client Model", () => {
+describe("Client Model - Unit tests", () => {
     // Test getAllEvents to make sure all events are listed
     test("getAllEvents gets the previously inserted events", async () => {
         const events = await getAllEvents();

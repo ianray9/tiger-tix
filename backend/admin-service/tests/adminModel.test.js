@@ -1,5 +1,8 @@
+const request = require("supertest");
+const express = require("express");
 const { createTestDB } = require("./setupTest");
 const { insertEvent, updateEvent, initDB } = require("../models/adminModel");
+const { addEvent, editEvent } = require("../controllers/adminController");
 
 let testDB;
 let validEventId;
@@ -8,13 +11,74 @@ beforeAll(() => {
     // in-memory test DB
     testDB = createTestDB();
     initDB(testDB);
+
+    // Build app
+    app = express();
+    app.use(express.json());
+    app.post("/admin/events", (req, res) => addEvent(req, res, testDB));
+    app.put("/admin/events/:id", (req, res) => editEvent(req, res, testDB))
 });
 
 afterAll((done) => {
     testDB.close(done);
 });
 
-describe("Admin Model", () => {
+describe("Admin Model - Integration tests", () => {
+    test("POST /admin/events creates a new event", async () => {
+        const eventBody = {
+            title: "Concert Night",
+            description: "Live concert",
+            startTime: "2025-11-10T18:00:00",
+            endTime: "2025-11-10T21:00:00",
+            venue: "Main Hall",
+            capacity: 300
+        };
+
+        const res = await request(app)
+            .post("/admin/events")
+            .send(eventBody);
+
+        expect(res.status).toBe(201);
+        expect(res.body).toHaveProperty("event");
+        expect(res.body.event.title).toBe("Concert Night");
+    });
+
+    test("PUT /admin/events/:id updates a created event successfully", async () => {
+        // Step 1 → Create event
+        const createRes = await request(app)
+            .post("/admin/events")
+            .send({
+                title: "Comedy Show",
+                description: "Funny event",
+                startTime: "2025-11-10T18:00:00",
+                endTime: "2025-11-10T20:00:00",
+                venue: "Room A",
+                capacity: 200
+            });
+
+        const eventId = createRes.body.event.eventId;
+
+        // Step 2 → Update event
+        const updateRes = await request(app)
+            .put(`/admin/events/${eventId}`)
+            .send({
+                title: "Comedy Show Updated",
+                description: "Updated desc",
+                startTime: "2025-11-10T18:00:00",
+                endTime: "2025-11-10T20:00:00",
+                venue: "Room A",
+                capacity: 250,
+                availableTickets: 250
+            });
+
+        expect(updateRes.status).toBe(200);
+        expect(updateRes.body.event.title).toBe("Comedy Show Updated");
+        expect(updateRes.body.event.capacity).toBe(250);
+    });
+
+});
+
+describe("Admin Model - Unit tests", () => {
     // Test inserting a valid event
     test("insertEvent: inserts a valid event", (done) => {
         const eventData = {
