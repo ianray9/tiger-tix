@@ -4,10 +4,41 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const { generateKey } = require('crypto');
 
 const PORT = process.env.AUTH_PORT || 7002;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const TOKEN_EXPIRY = '30m';
+
+// Helper: generate JWT
+function generateToken(user) {
+    return jwt.sign(
+        { userId: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: TOKEN_EXPIRY }
+    );
+}
+
+// Simple JWT auth middleware (to reuse in other services)
+function authMiddleware(req, res, next) {
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7)
+        : null;
+
+    if (!token) {
+        return res.status(401).json({ error: 'Missing auth token.' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) {
+            console.error('JWT verify error:', err.message);
+            return res.status(401).json({ error: 'Invalid or expired token.' });
+        }
+        req.user = decoded; // { userId, email, iat, exp }
+        next();
+    });
+}
 
 function createApp(db) {
     const app = express();
@@ -20,28 +51,15 @@ function createApp(db) {
     }));
 
     // Create users table if it doesn't exist
-    db.serialize(() => {
-        db.run(`
+    db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       created_at TEXT NOT NULL
     )
-  `, (err) => {
-            if (err) console.error('Error creating users table:', err.message);
-            else console.log('Ensured users table exists.');
-        });
-    });
+  `);
 
-    // Helper: generate JWT
-    function generateToken(user) {
-        return jwt.sign(
-            { userId: user.id, email: user.email },
-            JWT_SECRET,
-            { expiresIn: TOKEN_EXPIRY }
-        );
-    }
 
     // POST /api/auth/register
     app.post('/api/auth/register', (req, res) => {
@@ -117,26 +135,6 @@ function createApp(db) {
         );
     });
 
-    // Simple JWT auth middleware (to reuse in other services)
-    function authMiddleware(req, res, next) {
-        const authHeader = req.headers['authorization'] || '';
-        const token = authHeader.startsWith('Bearer ')
-            ? authHeader.slice(7)
-            : null;
-
-        if (!token) {
-            return res.status(401).json({ error: 'Missing auth token.' });
-        }
-
-        jwt.verify(token, JWT_SECRET, (err, decoded) => {
-            if (err) {
-                console.error('JWT verify error:', err.message);
-                return res.status(401).json({ error: 'Invalid or expired token.' });
-            }
-            req.user = decoded; // { userId, email, iat, exp }
-            next();
-        });
-    }
 
     // Example protected route (for testing)
     app.get('/api/auth/me', authMiddleware, (req, res) => {
@@ -146,4 +144,11 @@ function createApp(db) {
     return app;
 }
 
-module.exports = createApp;
+module.exports = {
+    createApp,
+    JWT_SECRET,
+    _test: {
+        generateToken,
+        authMiddleware
+    }
+};
