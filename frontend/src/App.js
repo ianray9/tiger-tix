@@ -4,11 +4,17 @@ import LlmBooking from "./LlmBooking";
 import LlmVoice from "./LlmVoice";
 import './LlmVoice.css';
 
+import { useAuth } from './AuthContext';  
+import LoginForm from './LoginForm';         
+import RegisterForm from './RegisterForm';
+
 function App() {
   const [events, setEvents] = useState([]);
   const [message, setMessage] = useState('');
 
-  // ✅ Centralized fetch function so UI can refresh
+  const { user, isAuthenticated, logout, token } = useAuth();
+
+  // Centralized fetch function so UI can refresh
   const fetchEvents = () => {
     fetch('http://localhost:6001/api/events')
       .then((res) => {
@@ -22,12 +28,12 @@ function App() {
       });
   };
 
-  // ✅ Load events on first page load
+  // Load events on first page load
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  // ✅ Refresh events whenever LLM completes a booking
+  // Refresh events whenever LLM completes a booking
   useEffect(() => {
     const handler = () => {
       console.log("LLM booking detected → refreshing events");
@@ -38,34 +44,72 @@ function App() {
     return () => window.removeEventListener('llm-booked', handler);
   }, []);
 
-  // ✅ Standard buy ticket (manual UI button)
+  // Standard buy ticket (manual UI button) – we'll protect this with JWT later
   const buyTicket = async (eventId, eventName) => {
-    try {
-      const response = await fetch(`http://localhost:6001/api/events/${eventId}/purchase`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Purchase failed');
-      }
-
-      // ✅ After purchase, refresh list
-      fetchEvents();
-
-      setMessage(`Ticket purchased for: ${eventName}`);
-    } catch (err) {
-      console.error(err);
-      setMessage(err.message);
+  try {
+    if (!token) {
+      setMessage('You must be logged in to buy tickets.');
+      return;
     }
-  };
+
+    const response = await fetch(`http://localhost:6001/api/events/${eventId}/purchase`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,    // ⬅️ send JWT
+      },
+    });
+
+    const result = await response.json();
+
+    if (response.status === 401) {
+      // Token missing, invalid, or expired → force logout and show login
+      logout();
+      setMessage('Session expired or not authorized. Please log in again.');
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Purchase failed');
+    }
+
+    // ✅ After purchase, refresh list
+    fetchEvents();
+    setMessage(`Ticket purchased for: ${eventName}`);
+  } catch (err) {
+    console.error(err);
+    setMessage(err.message);
+  }
+};
+
 
   return (
     <div className="App">
       <header>
         <h1 tabIndex="0">Clemson Campus Events</h1>
+
+        {/* 🔐 Auth UI */}
+        <div style={{ marginTop: '1rem' }}>
+          {isAuthenticated ? (
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <span>Logged in as <strong>{user.email}</strong></span>
+              <button onClick={logout}>Logout</button>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                gap: '2rem',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}
+            >
+              <LoginForm />
+              <RegisterForm />
+            </div>
+          )}
+        </div>
       </header>
 
       <main role="main">
