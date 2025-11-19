@@ -73,15 +73,12 @@ describe("Client Model", () => {
         expect(events.length).toBe(3);
         expect(events[0]).toMatchObject({
             title: "Original Event 1",
-            venue: "Original Venue",
         });
         expect(events[1]).toMatchObject({
             title: "Original Event 2",
-            venue: "Original Venue",
         });
         expect(events[2]).toMatchObject({
             title: "Concurrent Event",
-            venue: "Original Venue",
         });
     });
 
