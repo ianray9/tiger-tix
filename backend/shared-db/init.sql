@@ -9,3 +9,13 @@ CREATE TABLE IF NOT EXISTS events (
     availableTickets INTEGER NOT NULL CHECK (capacity >= 0 
     AND availableTickets <= capacity)
 );
+INSERT INTO events (title, description, startTime, endTime, venue, capacity, availableTickets)
+VALUES (
+    "Jazz Night",
+    "A fun evening of jazz music.",
+    "2025-11-10 19:00",
+    "2025-11-10 21:00",
+    "Brooks Center",
+    50,
+    50
+);
