@@ -14,6 +14,9 @@ const openai = process.env.OPENAI_API_KEY
  *   { intent: "book"|"list"|"unknown", event: string|null, tickets: number|null }
  */
 async function askLLMToParse(text) {
+  if (!text || !text.trim()) {
+    return { intent: "unknown", event: null, tickets: null };
+  }
   const prompt = `
 You are a JSON-only parser for ticket booking requests.
 Respond ONLY with a valid JSON object and nothing else.

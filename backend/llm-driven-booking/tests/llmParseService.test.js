@@ -1,4 +1,4 @@
-const { askLLMToParse } = require("../path/to/llmParser");
+const { askLLMToParse } = require("../llmParseService");
 
 describe("LLM Request/Response Parsing", () => {
 
