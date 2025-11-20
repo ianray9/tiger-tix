@@ -7,7 +7,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
     else console.log('LLM connected to SQLite database.');
 });
 
-// Get all events (optional helper)
+// Purpose: Helper function to get all events without realing on client 
+// Output: Promise if resolve contains list of events
 function getAvailableEvents() {
     return new Promise((resolve, reject) => {
         db.all(
@@ -29,6 +30,9 @@ function getAvailableEvents() {
     });
 }
 
+// Purpose: Find a event by the title
+// Inputs: title - name of event ot find
+// Output: Promise if resolve contains event info
 function getEventByName(title) {
     return new Promise((resolve, reject) => {
         db.get(
@@ -54,6 +58,9 @@ function getEventByName(title) {
     });
 }
 
+// Purpose: Find a event by the title
+// Inputs: eventId - id of event to find
+// Output: Promise if resolve contains event info
 function getEventById(eventId) {
     return new Promise((resolve, reject) => {
         db.get(
@@ -78,6 +85,10 @@ function getEventById(eventId) {
     });
 }
 
+// Purpose: Update an event's info to show one less available ticket from client model
+// Inputs: eventId - id of event to book tickets from
+//         quantity - the amount of tickets to book
+// Output: Promise of succese message if resolved
 function bookTickets(eventId, quantity) {
     return new Promise((resolve, reject) => {
         db.serialize(() => {

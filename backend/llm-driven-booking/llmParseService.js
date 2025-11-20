@@ -6,13 +6,10 @@ const openai = process.env.OPENAI_API_KEY
     ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     : null;
 
-/**
- * askLLMToParse
- * ----------------
- * Accepts a natural language text (like "Book two tickets for Jazz Night")
- * and returns a structured JSON object:
- *   { intent: "book"|"list"|"unknown", event: string|null, tickets: number|null }
- */
+// Purpose: Update an event's info to show one less available ticket from client model
+// Inputs: text - Accepts a natural language text (like "Book two tickets for Jazz Night")
+// Output: returns a structured JSON object:
+//   { intent: "book"|"list"|"unknown", event: string|null, tickets: number|null }
 async function askLLMToParse(text) {
     if (!text || !text.trim()) {
         return { intent: "unknown", event: null, tickets: null };
@@ -75,12 +72,10 @@ User input: "${text}"
     }
 }
 
-/**
- * extractTicketQuantity
- * ----------------
- * Tries to find a ticket quantity from digits ("2 tickets")
- * or number words ("two tickets", "a ticket").
- */
+// Purpose: Tries to find a ticket quantity from digits ("2 tickets") or 
+// number words ("two tickets", "a ticket").
+// Inputs: text - Accepts a natural language text (like "Book two tickets for Jazz Night")
+// Output: number of tickets to book for event
 function extractTicketQuantity(text) {
     const lower = text.toLowerCase();
 
@@ -119,11 +114,9 @@ function extractTicketQuantity(text) {
     return null;
 }
 
-/**
- * fallbackParse
- * ----------------
- * Simple keyword-based and regex parsing for offline or error fallback.
- */
+// Purpose: Simple keyword-based and regex parsing for offline or error fallback 
+// Inputs: text - Accepts a natural language text (like "Book two tickets for Jazz Night")
+// Output: JSON object of parsed message
 function fallbackParse(text) {
     const lower = text.toLowerCase();
 

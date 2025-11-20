@@ -10,7 +10,9 @@ const PORT = process.env.AUTH_PORT || 7002;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const TOKEN_EXPIRY = '30m';
 
-// Helper: generate JWT
+// Purpose: Helper function to generate JWT
+// Inputs: user - user to generate JWT for 
+// Output: JWT for user
 function generateToken(user) {
     return jwt.sign(
         { userId: user.id, email: user.email },
@@ -19,7 +21,10 @@ function generateToken(user) {
     );
 }
 
-// Simple JWT auth middleware (to reuse in other services)
+// Purpose: Simple JWT auth middleware
+// Inputs: req - API request
+//         res - resolution code of request
+//         next - function for next step in auth process
 function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'] || '';
     const token = authHeader.startsWith('Bearer ')
@@ -40,6 +45,9 @@ function authMiddleware(req, res, next) {
     });
 }
 
+// Purpose: Create user auth service 
+// Inputs:  db - db to use in the auth service
+// Output: express app fo user auth service
 function createApp(db) {
     const app = express();
 

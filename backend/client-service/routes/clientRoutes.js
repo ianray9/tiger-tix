@@ -6,6 +6,10 @@ const clientController = require('../controllers/clientController');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
+// Purpose: Authenicate user tokene
+// Inputs: req - API request
+//         res - resolution code of request
+//         next - function for next step in auth
 function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.startsWith('Bearer ')

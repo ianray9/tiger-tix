@@ -6,11 +6,8 @@ const OpenAI = require('openai');
 const openaiApiKey = process.env.OPENAI_API_KEY;
 const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
-/**
- * askLLM(text, context)
- * A conversational ticket assistant — understands natural language,
- * responds conversationally, and confirms before booking.
- */
+// Purpose: A conversational ticket assistant — understands natural language,
+// responds conversationally, and confirms before booking.
 async function askLLM(text, context = []) {
     if (!openai) {
         return {
