@@ -13,6 +13,14 @@ export default function LlmBooking() {
     }
   ]);
 
+  function speak(text) {
+    if (!window.speechSynthesis) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;  
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  }
+
   async function handleParse() {
     if (!input.trim()) return;
     const userMsg = { sender: 'user', text: input };
@@ -30,7 +38,11 @@ export default function LlmBooking() {
 
       if (!resp.ok) {
         const errMsg = { sender: 'bot', text: data.error || 'Could not parse your request.' };
-        setMessages(prev => [...prev, errMsg]);
+        setMessages(prev => {
+          const newMsgs = [...prev, errMsg];
+          speak(errMsg.text);
+          return newMsgs;
+        });
         setStatus('');
         return;
       }
@@ -38,12 +50,20 @@ export default function LlmBooking() {
       setParsed(data.parsed);
       setStatus('');
 
-      setMessages(prev => [
-        ...prev,
-        { sender: 'bot', text: `Here’s what I understood: ${JSON.stringify(data.parsed, null, 2)}` }
-      ]);
+      setMessages(prev => {
+        const botMsg = { sender: 'bot', text: `Here’s what I understood: ${JSON.stringify(data.parsed, null, 2)}` };
+        const newMsgs = [...prev, botMsg];
+        speak(botMsg.text);
+        return newMsgs;
+      });
     } catch (err) {
-      setMessages(prev => [...prev, { sender: 'bot', text: 'Error connecting to LLM service.' }]);
+      setMessages(prev => {
+        const botMsg = { sender: 'bot', text: 'Error connecting to LLM service.' };
+        const newMsgs = [...prev, botMsg];
+        speak(botMsg.text);
+        return newMsgs;
+      });
+      setStatus('');
     }
 
     setInput('');
@@ -59,32 +79,49 @@ export default function LlmBooking() {
       event_name: parsed.event
     };
 
-    const resp = await fetch('/api/llm/confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    try {
+      const resp = await fetch('/api/llm/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
 
-    const data = await resp.json();
+      const data = await resp.json();
 
-    if (resp.ok && data.success) {
-      const name = data.event?.title || parsed.event || 'your event';
-      const remainingText =
-      typeof data.remaining === 'number'
-        ? ` Tickets remaining: ${data.remaining}.`
-        : '';
+      if (resp.ok && data.success) {
+        const name = data.event?.title || parsed.event || 'your event';
+        const remainingText =
+          typeof data.remaining === 'number'
+            ? ` Tickets remaining: ${data.remaining}.`
+            : '';
 
-     setMessages(prev => [
-      ...prev,
-        { sender: 'bot', text: `✅ Booking confirmed for ${name}.${remainingText}` }
-      ]);
-      setParsed(null);
+        setMessages(prev => {
+          const botMsg = { sender: 'bot', text: `✅ Booking confirmed for ${name}.${remainingText}` };
+          const newMsgs = [...prev, botMsg];
+          speak(botMsg.text);
+          return newMsgs;
+        });
 
-    // Refresh event list so the seat count updates
-    window.dispatchEvent(new Event('llm-booked'));
-    } else {
-    setMessages(prev => [...prev, { sender: 'bot', text: data.error || 'Booking failed.' }]);
-    } 
+        setParsed(null);
+
+        // Refresh event list so the seat count updates
+        window.dispatchEvent(new Event('llm-booked'));
+      } else {
+        setMessages(prev => {
+          const botMsg = { sender: 'bot', text: data.error || 'Booking failed.' };
+          const newMsgs = [...prev, botMsg];
+          speak(botMsg.text);
+          return newMsgs;
+        });
+      }
+    } catch (err) {
+      setMessages(prev => {
+        const botMsg = { sender: 'bot', text: 'Error connecting to booking service.' };
+        const newMsgs = [...prev, botMsg];
+        speak(botMsg.text);
+        return newMsgs;
+      });
+    }
 
     setStatus('');
   }
