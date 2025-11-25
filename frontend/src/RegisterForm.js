@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 
+// Get url
+const authURL = process.env.REACT_APP_AUTH_URL;
+
 export default function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,7 +15,7 @@ export default function RegisterForm() {
     setError('');
 
     try {
-      const resp = await fetch('http://localhost:7002/api/auth/register', {
+      const resp = await fetch(`${authURL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

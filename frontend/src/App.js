@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
+
+// Get urls
+const clientURL = process.env.REACT_APP_CLIENT_URL;
+
 import './App.css';
 import LlmBooking from "./LlmBooking";
 import LlmVoice from "./LlmVoice";
 import './LlmVoice.css';
 
-import { useAuth } from './AuthContext';  
-import LoginForm from './LoginForm';         
+import { useAuth } from './AuthContext';
+import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 
 function App() {
@@ -16,7 +20,7 @@ function App() {
 
   // Centralized fetch function so UI can refresh
   const fetchEvents = () => {
-    fetch('http://localhost:6001/api/events')
+    fetch(`${clientURL}/api/events`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch events');
         return res.json();
@@ -46,41 +50,41 @@ function App() {
 
   // Standard buy ticket (manual UI button) – we'll protect this with JWT later
   const buyTicket = async (eventId, eventName) => {
-  try {
-    if (!token) {
-      setMessage('You must be logged in to buy tickets.');
-      return;
+    try {
+      if (!token) {
+        setMessage('You must be logged in to buy tickets.');
+        return;
+      }
+
+      const response = await fetch(`${clientURL}/api/events/${eventId}/purchase`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,    // ⬅️ send JWT
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.status === 401) {
+        // Token missing, invalid, or expired → force logout and show login
+        logout();
+        setMessage('Session expired or not authorized. Please log in again.');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Purchase failed');
+      }
+
+      // ✅ After purchase, refresh list
+      fetchEvents();
+      setMessage(`Ticket purchased for: ${eventName}`);
+    } catch (err) {
+      console.error(err);
+      setMessage(err.message);
     }
-
-    const response = await fetch(`http://localhost:6001/api/events/${eventId}/purchase`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,    // ⬅️ send JWT
-      },
-    });
-
-    const result = await response.json();
-
-    if (response.status === 401) {
-      // Token missing, invalid, or expired → force logout and show login
-      logout();
-      setMessage('Session expired or not authorized. Please log in again.');
-      return;
-    }
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Purchase failed');
-    }
-
-    // ✅ After purchase, refresh list
-    fetchEvents();
-    setMessage(`Ticket purchased for: ${eventName}`);
-  } catch (err) {
-    console.error(err);
-    setMessage(err.message);
-  }
-};
+  };
 
 
   return (

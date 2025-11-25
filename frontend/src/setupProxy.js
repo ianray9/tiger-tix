@@ -1,11 +1,15 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
+const llmURL = process.env.REACT_APP_LLM_URL;
+const clientURL = process.env.REACT_APP_CLIENT_URL;
+
+
 module.exports = function(app) {
   // LLM service (port 7001)
   app.use(
     '/api/llm',
     createProxyMiddleware({
-      target: 'http://localhost:7001',
+      target: `${llmURL}`,
       changeOrigin: true
     })
   );
@@ -14,7 +18,7 @@ module.exports = function(app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://localhost:6001',
+      target: `${clientURL}`,
       changeOrigin: true
     })
   );

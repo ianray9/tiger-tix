@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 
+// Get url
+const authURL = process.env.REACT_APP_AUTH_URL;
+
 export default function LoginForm() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -12,7 +15,7 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const resp = await fetch('http://localhost:7002/api/auth/login', {
+      const resp = await fetch(`${authURL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
