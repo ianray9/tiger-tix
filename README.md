@@ -22,7 +22,7 @@ TigerTix employs a microservices architecture, where independent backend service
 
 Servers:
 |Server|Port|Use|
-|---|:---:|:---:|
+|:---:|:---:|:---:|
 | Admin Service | 5001 | Create/update events & write operations |
 | Client Service | 6001 | Validate/Purchase tickets & List events  |
 | LLM Booking Service | 7001 | Natural Langauge into booking actions |
@@ -77,6 +77,40 @@ Admin Service inserts or updates events and writes to the shared SQLite DB. Clie
       - cd frontend
       - npm run dev
 ## Environment Variables Setup
+
+Each microservice includes a .env.example or uses implicit defaults. Create .env files as follows.
+
+Admin Service (backend/admin-service/.env)
+- PORT=5001
+- DB_PATH=../shared-db/database.sqlite
+
+Client Service (backend/client-service/.env)
+- PORT=6001
+- DB_PATH=../shared-db/database.sqlite
+
+LLM Booking Service (backend/llm-driven-booking/.env)
+- PORT=7001
+- OPENAI_API_KEY=<your_key_here>
+- CLIENT_SERVICE_URL=http://localhost:6001
+- ADMIN_SERVICE_URL=http://localhost:5001
+
+Frontend (frontend/.env)
+- VITE_CLIENT_SERVICE_URL=http://localhost:6001/api
+- VITE_ADMIN_SERVICE_URL=http://localhost:5001/api
+- VITE_LLM_URL=http://localhost:7001/api
+    
 ## How to run regression tests
 ## Team Members, Instructor, TAs, and roles
+Members:
+| Name | Role |
+|:---:|:---:|
+| Ian Rayburn | Scrum Master/Full-stack Developer |
+| Josue Montalban Cortez | Full-stack Developer |
+| Allan Cruz | Full-stack Developer |
+
+Instructor: Dr. Julian Brinkley
+
+TAs: Colt Doster & Atik Enam
+
 ## License
+This project is released under the MIT License. For more information, visit: https://choosealicense.com/licenses/mit/.
