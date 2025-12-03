@@ -51,12 +51,7 @@ Admin Service inserts or updates events and writes to the shared SQLite DB. Clie
     - cd frontend:
       - npm install
         
-3. Initialise the database:
-  - Run the migration script:
-    - cd backend/shared-db
-      - node init.js
-
-4. Run the Services:
+3. Run the Services:
     1. Start Admin Service
       - cd backend/admin-service
       - node server.js
