@@ -107,5 +107,8 @@ Instructor: Dr. Julian Brinkley
 
 TAs: Colt Doster & Atik Enam
 
+## Link to Demo Vid
+https://drive.google.com/file/d/1yJ31NMXIzAYpagmQ7fow1iZEfyKFy6_t/view?usp=sharing 
+
 ## License
 This project is released under the MIT License. For more information, visit: https://choosealicense.com/licenses/mit/.
