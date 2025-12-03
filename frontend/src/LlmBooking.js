@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import './LlmBooking.css';
+import { useAuth } from "./AuthContext";
 
 export default function LlmBooking() {
+  const { token, isAuthenticated } = useAuth();
   const [input, setInput] = useState('');
   const [parsed, setParsed] = useState(null);
   const [status, setStatus] = useState('');
@@ -81,10 +83,14 @@ export default function LlmBooking() {
 
     try {
       const resp = await fetch('/api/llm/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(body)
+});
+
 
       const data = await resp.json();
 
@@ -142,11 +148,17 @@ export default function LlmBooking() {
             ))}
           </div>
 
-          {parsed?.intent === 'book' && (
+          {parsed?.intent === "book" && (
+            isAuthenticated ? (
             <button className="confirm-btn" onClick={handleConfirm}>
               Confirm Booking
             </button>
-          )}
+          ) : (
+            <div className="login-warning">
+              You must <a href="/login">log in</a> before booking.
+            </div>
+    )
+)}
 
           <div className="input-area">
             <input

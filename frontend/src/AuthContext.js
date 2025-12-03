@@ -1,26 +1,32 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from "react";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);   // { id, email }
-  const [token, setToken] = useState(null); // JWT string
+    const [token, setToken] = useState(null);
+    const [user, setUser] = useState(null);
 
-  function login(userData, jwtToken) {
-    setUser(userData);
-    setToken(jwtToken);
-  }
+    // Run after login
+    function login(newToken, userInfo) {
+        setToken(newToken);
+        setUser(userInfo);
+    }
 
-  function logout() {
-    setUser(null);
-    setToken(null);
-  }
+    // Run during logout
+    function logout() {
+        setToken(null);
+        setUser(null);
+    }
 
-  const value = { user, token, login, logout, isAuthenticated: !!token };
+    const isAuthenticated = !!token; // Boolean
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated }}>
+            {children}
+        </AuthContext.Provider>
+    );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+    return useContext(AuthContext);
 }

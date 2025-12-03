@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { askLLMToParse } = require('./llmParseService');
+const verifyJwt = require('./authMiddleware');
 const { getEventByName, getEventById, bookTickets } = require('./db');
 
 const app = express();
@@ -54,7 +55,7 @@ app.post('/api/llm/parse', async (req, res) => {
     }
 });
 
-app.post('/api/llm/confirm', async (req, res) => {
+app.post('/api/llm/confirm', verifyJwt, async (req, res) => {
     const { event_id, event_name, quantity } = req.body;
     const qty = parseInt(quantity, 10);
 
