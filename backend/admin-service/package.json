@@ -1,0 +1,19 @@
+{
+  "name": "admin-service",
+  "version": "1.0.0",
+  "description": "Admin service for TigerTix",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "setup": "node setup.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "sqlite3": "^5.1.7"
+  }
+}
+

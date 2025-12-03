@@ -1,12 +1,21 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 let db;
 
 const dbPath =
   process.env.NODE_ENV === 'test'
     ? ':memory:'
-    : path.resolve(__dirname, '../../shared-db/database.sqlite');
+    : (process.env.DATABASE_PATH || path.resolve(__dirname, '../../shared-db/database.sqlite'));
+
+// Ensure the directory exists (important for Railway volumes)
+if (process.env.NODE_ENV !== 'test' && !process.env.TEST_DB) {
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+}
 
 console.log("CLIENT SERVICE DB PATH:", dbPath);
 
@@ -16,7 +25,7 @@ if (!process.env.TEST_DB) {
     if (error) {
       console.error('Database connection error:', error.message);
     } else {
-      console.log(`Connected to ${process.env.NODE_ENV === 'test' ? 'in-memory' : 'shared'} SQLite database.`);
+      console.log(`Connected to ${process.env.NODE_ENV === 'test' ? 'in-memory' : 'SQLite'} database at: ${dbPath}`);
     }
   });
 }

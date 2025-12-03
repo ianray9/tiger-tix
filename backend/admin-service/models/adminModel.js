@@ -1,11 +1,19 @@
 const path = require("path");
+const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
 
-const dbPath = path.resolve("backend/shared-db/database.sqlite");
+// Use environment variable for database path (Railway volume) or fallback to local path
+const dbPath = process.env.DATABASE_PATH || path.resolve(__dirname, "../../shared-db/database.sqlite");
+
+// Ensure the directory exists (important for Railway volumes)
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
 
 let db = new sqlite3.Database(dbPath, (error) => {
     if (error) return console.error(error.message);
-    console.log('Connected to shared SQLite database.');
+    console.log(`Connected to SQLite database at: ${dbPath}`);
 });
 
 const initDB = (customDB) => {

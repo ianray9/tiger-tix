@@ -1,10 +1,19 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
-const dbPath = process.env.SQLITE_PATH || path.join(__dirname, '../shared-db/database.sqlite');
+// Use DATABASE_PATH for consistency, fallback to SQLITE_PATH for backward compatibility
+const dbPath = process.env.DATABASE_PATH || process.env.SQLITE_PATH || path.join(__dirname, '../shared-db/database.sqlite');
+
+// Ensure the directory exists (important for Railway volumes)
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('LLM DB connection error:', err.message);
-    else console.log('LLM connected to SQLite database.');
+    else console.log(`LLM connected to SQLite database at: ${dbPath}`);
 });
 
 // Purpose: Helper function to get all events without realing on client 
