@@ -70,7 +70,7 @@ Admin Service inserts or updates events and writes to the shared SQLite DB. Clie
         
     5. Start React Frontend
       - cd frontend
-      - npm run dev
+      - npm start
 ## Environment Variables Setup
 
 Each microservice includes a .env.example or uses implicit defaults. Create .env files as follows.
