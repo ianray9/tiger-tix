@@ -1,0 +1,71 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Node.js CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: |
+          backend/package-lock.json
+          frontend/package-lock.json
+
+    - name: Install Backend Dependencies
+      working-directory: ./backend
+      run: |
+        npm ci
+        # The postinstall script will install dependencies for all microservices
+
+    - name: Install Frontend Dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Run Backend Tests
+      working-directory: ./backend
+      env:
+        NODE_ENV: test
+        TEST_DB: true
+        JWT_SECRET: test-secret-key
+        DATABASE_PATH: ./test-db.sqlite
+      run: npm test
+
+    - name: Run Frontend Tests
+      working-directory: ./frontend
+      env:
+        CI: true
+        REACT_APP_BACKEND_URL: http://localhost:8000
+        REACT_APP_AUTH_URL: http://localhost:7002
+        REACT_APP_CLIENT_URL: http://localhost:6001
+        REACT_APP_LLM_URL: http://localhost:7001
+      run: npm test -- --watchAll=false --coverage=false
+
+    - name: Build Frontend (if tests pass)
+      working-directory: ./frontend
+      env:
+        REACT_APP_BACKEND_URL: http://localhost:8000
+        REACT_APP_AUTH_URL: http://localhost:7002
+        REACT_APP_CLIENT_URL: http://localhost:6001
+        REACT_APP_LLM_URL: http://localhost:7001
+      run: npm run build --if-present
+
