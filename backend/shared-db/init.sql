@@ -1,3 +1,4 @@
+-- Events table
 CREATE TABLE IF NOT EXISTS events (
     eventId INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -9,7 +10,17 @@ CREATE TABLE IF NOT EXISTS events (
     availableTickets INTEGER NOT NULL CHECK (capacity >= 0 
     AND availableTickets <= capacity)
 );
-INSERT INTO events (title, description, startTime, endTime, venue, capacity, availableTickets)
+
+-- Users table (for authentication)
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+-- Insert sample event
+INSERT OR IGNORE INTO events (title, description, startTime, endTime, venue, capacity, availableTickets)
 VALUES (
     "Jazz Night",
     "A fun evening of jazz music.",
