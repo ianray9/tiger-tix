@@ -77,6 +77,15 @@ function createGateway() {
     const gateway = express();
     gateway.use(express.json());
 
+    // Root endpoint
+    gateway.get('/', (req, res) => {
+        res.json({ 
+            status: 'ok', 
+            message: 'TigerTix Gateway',
+            services: services.map(s => ({ name: s.name, route: s.route, port: s.port }))
+        });
+    });
+
     // Health check endpoint
     gateway.get('/health', (req, res) => {
         res.json({ status: 'ok', services: services.map(s => s.name) });
@@ -90,11 +99,16 @@ function createGateway() {
             createProxyMiddleware({
                 target: target,
                 changeOrigin: true,
-                logLevel: 'info',
+                logLevel: 'warn',
+                timeout: 30000, // 30 second timeout
+                proxyTimeout: 30000,
                 onError: (err, req, res) => {
                     console.error(`Proxy error for ${service.name}:`, err.message);
                     if (!res.headersSent) {
-                        res.status(502).json({ error: `Service ${service.name} unavailable` });
+                        res.status(502).json({ 
+                            error: `Service ${service.name} unavailable`,
+                            message: 'The service may still be starting. Please try again in a few seconds.'
+                        });
                     }
                 }
             })
@@ -121,8 +135,16 @@ async function startServices() {
     // Track spawned processes
     const processes = [];
 
-    // Wait a bit for services to start before starting gateway
-    const startDelay = 2000; // 2 seconds
+    // Start gateway immediately so Railway can connect (services will be proxied when ready)
+    const gateway = createGateway();
+    const gatewayPort = process.env.PORT || process.env.GATEWAY_PORT || 8000;
+    gateway.listen(gatewayPort, '0.0.0.0', () => {
+        console.log(`\nGateway server running on port ${gatewayPort}`);
+        console.log(`   Routes:`);
+        services.forEach(s => {
+            console.log(`   ${s.route} -> ${s.name} (localhost:${s.port})`);
+        });
+    });
 
     // Start each service
     for (const service of services) {
@@ -165,21 +187,6 @@ async function startServices() {
 
         processes.push({ name: service.name, process: proc });
     }
-
-    // Start gateway server after services have started
-    setTimeout(() => {
-        const gateway = createGateway();
-        // Use PORT env var (Railway sets this), or GATEWAY_PORT, or default to 8000 for local dev
-        // This avoids conflict with frontend on port 3000
-        const gatewayPort = process.env.PORT || process.env.GATEWAY_PORT || 8000;
-        gateway.listen(gatewayPort, () => {
-            console.log(`\nGateway server running on port ${gatewayPort}`);
-            console.log(`   Routes:`);
-            services.forEach(s => {
-                console.log(`   ${s.route} -> ${s.name} (localhost:${s.port})`);
-            });
-        });
-    }, startDelay);
 
     // Handle graceful shutdown
     process.on('SIGTERM', () => {
