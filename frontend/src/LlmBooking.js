@@ -28,12 +28,23 @@ export default function LlmBooking() {
 
   async function handleParse() {
     if (!input.trim()) return;
+    
+    if (!backendURL) {
+      const errMsg = { sender: 'bot', text: 'Backend URL not configured. Please set REACT_APP_BACKEND_URL environment variable.' };
+      setMessages(prev => [...prev, errMsg]);
+      console.error('Backend URL is missing:', { backendURL, env: process.env });
+      return;
+    }
+    
     const userMsg = { sender: 'user', text: input };
     setMessages(prev => [...prev, userMsg]);
     setStatus('Parsing…');
 
     try {
-      const resp = await fetch(`${backendURL}/api/llm/parse`, {
+      const url = `${backendURL}/api/llm/parse`;
+      console.log('LLM parse request to:', url);
+      
+      const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: input })
@@ -42,7 +53,8 @@ export default function LlmBooking() {
       const data = await resp.json();
 
       if (!resp.ok) {
-        const errMsg = { sender: 'bot', text: data.error || 'Could not parse your request.' };
+        console.error('LLM parse failed:', { status: resp.status, data });
+        const errMsg = { sender: 'bot', text: data.error || `Could not parse your request (${resp.status}).` };
         setMessages(prev => {
           const newMsgs = [...prev, errMsg];
           speak(errMsg.text);
@@ -62,8 +74,9 @@ export default function LlmBooking() {
         return newMsgs;
       });
     } catch (err) {
+      console.error('LLM parse error:', err);
       setMessages(prev => {
-        const botMsg = { sender: 'bot', text: 'Error connecting to LLM service.' };
+        const botMsg = { sender: 'bot', text: `Error connecting to LLM service: ${err.message}. Check console for details.` };
         const newMsgs = [...prev, botMsg];
         speak(botMsg.text);
         return newMsgs;

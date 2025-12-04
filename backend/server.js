@@ -124,6 +124,61 @@ function createGateway() {
         res.json({ status: 'ok', services: services.map(s => s.name) });
     });
 
+    // Diagnostic endpoint to check service connectivity
+    gateway.get('/diagnostics', async (req, res) => {
+        const http = require('http');
+        const diagnostics = {
+            gateway: 'running',
+            timestamp: new Date().toISOString(),
+            environment: {
+                NODE_ENV: process.env.NODE_ENV,
+                PORT: process.env.PORT,
+                FRONTEND_URL: process.env.FRONTEND_URL
+            },
+            services: {}
+        };
+
+        // Check each service by trying to connect
+        for (const service of services) {
+            const target = `http://localhost:${service.port}`;
+            diagnostics.services[service.name] = {
+                route: service.route,
+                port: service.port,
+                target: target,
+                status: 'checking...'
+            };
+
+            try {
+                await new Promise((resolve) => {
+                    const testReq = http.get(target, { timeout: 2000 }, (testRes) => {
+                        let data = '';
+                        testRes.on('data', chunk => data += chunk);
+                        testRes.on('end', () => {
+                            diagnostics.services[service.name].status = 'online';
+                            diagnostics.services[service.name].httpStatus = testRes.statusCode;
+                            resolve();
+                        });
+                    });
+                    testReq.on('error', (err) => {
+                        diagnostics.services[service.name].status = 'offline';
+                        diagnostics.services[service.name].error = err.code || err.message;
+                        resolve();
+                    });
+                    testReq.on('timeout', () => {
+                        testReq.destroy();
+                        diagnostics.services[service.name].status = 'timeout';
+                        resolve();
+                    });
+                });
+            } catch (err) {
+                diagnostics.services[service.name].status = 'error';
+                diagnostics.services[service.name].error = err.message;
+            }
+        }
+
+        res.json(diagnostics);
+    });
+
     // Proxy routes to microservices
     // IMPORTANT: Do not use express.json() before proxying - it consumes the request body stream
     // Each service will parse the JSON body themselves
@@ -142,19 +197,30 @@ function createGateway() {
                     // Don't rewrite - services already use full paths
                     return path;
                 },
-                // Log proxy requests in development
+                // Log proxy requests (always log errors, optionally log all requests)
                 onProxyReq: (proxyReq, req, res) => {
-                    if (process.env.NODE_ENV !== 'production') {
+                    if (process.env.LOG_REQUESTS === 'true' || process.env.NODE_ENV !== 'production') {
                         console.log(`[Gateway] ${req.method} ${req.url} -> ${target}${req.url}`);
                     }
                 },
                 onError: (err, req, res) => {
-                    console.error(`Proxy error for ${service.name}:`, err.message);
+                    console.error(`[Gateway] Proxy error for ${service.name} (${req.method} ${req.url}):`, err.message);
+                    console.error(`[Gateway] Error details:`, {
+                        code: err.code,
+                        target: target,
+                        service: service.name
+                    });
                     if (!res.headersSent) {
                         res.status(502).json({ 
                             error: `Service ${service.name} unavailable`,
-                            message: 'The service may still be starting. Please try again in a few seconds.'
+                            message: 'The service may still be starting. Please try again in a few seconds.',
+                            details: process.env.NODE_ENV !== 'production' ? err.message : undefined
                         });
+                    }
+                },
+                onProxyRes: (proxyRes, req, res) => {
+                    if (process.env.LOG_REQUESTS === 'true' || process.env.NODE_ENV !== 'production') {
+                        console.log(`[Gateway] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
                     }
                 }
             })

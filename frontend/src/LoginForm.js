@@ -14,8 +14,17 @@ export default function LoginForm() {
     e.preventDefault();
     setError('');
 
+    if (!backendURL) {
+      setError('Backend URL not configured. Please set REACT_APP_BACKEND_URL environment variable.');
+      console.error('Backend URL is missing:', { backendURL, env: process.env });
+      return;
+    }
+
     try {
-      const resp = await fetch(`${backendURL}/api/auth/login`, {
+      const url = `${backendURL}/api/auth/login`;
+      console.log('Login request to:', url);
+      
+      const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -24,7 +33,8 @@ export default function LoginForm() {
       const data = await resp.json();
 
       if (!resp.ok) {
-        setError(data.error || 'Login failed');
+        console.error('Login failed:', { status: resp.status, data });
+        setError(data.error || `Login failed (${resp.status})`);
         return;
       }
 
@@ -32,7 +42,7 @@ export default function LoginForm() {
       login(data.token, data.user);
     } catch (err) {
       console.error('Login error:', err);
-      setError('Login failed. Please try again.');
+      setError(`Login failed: ${err.message}. Check console for details.`);
     }
   }
 
