@@ -1,8 +1,8 @@
+## TigerTix Architecture Diagram
 ![Architecture Diagram](imgs/architecture_img.png)
-**TigerTix Architecture Diagram**
 
+## Ticket Booking Data Flow
 ![Ticket Booking Data Flow Diagram](imgs/dataflow_img.png)
-**Ticket Booking Data Flow**
 
 
 The Tiger Tix system integrates two micro-services that interact with the shared database. The first micro-service is the admin micro-service. This micro-service is not connected to the front end, but can be used to post or update events in the shared database. The client micro-service allows the Frontend to interact with the shared database. The Frontend can get the information about the events that are stored in the database, then display them for the user. When the user requests to buy a ticket on the Frontend, the Frontend then uses the client micro-service to update the availability in the database. 
