@@ -1,114 +1,190 @@
 # TigerTix
+
 ## Project Overview
-TigerTix is a full-stack, microservices-driven ticket-booking platform designed to help Clemson students, faculty, and residents find events on Clemson's campus. This application used a React.js frontend communicating with multiple Node.js/Express backend microservices, all connected through a shared SQLite database. TigerTix allows for:
+
+*TigerTix* is a full-stack, microservices-driven ticket-booking platform designed to help Clemson students, faculty, and residents find events on Clemson's campus. This application uses a React.js frontend communicating with multiple Node.js/Express backend microservices, all connected through a shared SQLite database.
+
+**Features:**
 - Event creation and management
 - Event browsing and ticket purchases
 - User authentication
-- LLM-driven natural-language ticket booking
+- LLM-driven natural language ticket booking
 - Automated regression testing
+
 ## Tech Stack
-Frontend:
+
+**Frontend:**
 - React.js
 - Axios
 - Semantic HTML + ARIA Accessibility
 
-Backend:
+**Backend:**
 - Node.js
 - Express.js
 - SQLite3
 - LLM Integration via OpenAI-style API calls
-## Architecture Summary
-TigerTix employs a microservices architecture, where independent backend services communicate via REST APIs and share a single SQLite database (backend/shared-db/database.sqlite). Schema initialisation scripts live in: backend/shared-db/init.sql. 
 
-Servers:
-|Server|Port|Use|
+## Architecture Summary
+
+*TigerTix* employs a microservices architecture, where independent backend services communicate via REST APIs and share a single SQLite database (`backend/shared-db/database.sqlite`). Schema initialization scripts are located in `backend/shared-db/init.sql`.
+
+*For more info on architecture and architecture diagram go to* [here](more_info/Architecture.md)
+
+### Servers
+
+| Server | Port | Use |
 |:---:|:---:|:---:|
 | Admin Service | 5001 | Create/update events & write operations |
-| Client Service | 6001 | Validate/Purchase tickets & List events  |
-| LLM Booking Service | 7001 | Natural Langauge into booking actions |
-| User Authentication Service | Varies | Login/registration functionality |
-| Frontend| 5173 | User Interface |
+| Client Service | 6001 | Validate/purchase tickets & list events |
+| LLM Booking Service | 7001 | Natural language into booking actions |
+| User Authentication Service | 7002 | Login/registration functionality |
+| Frontend | 3000 | User Interface |
 
-Data flow: 
+### Data Flow
 
 Admin Service inserts or updates events and writes to the shared SQLite DB. Client Service reads events and processes ticket purchases using transactions. LLM Service receives user prompts and calls Client/Admin APIs. Frontend fetches data directly from microservices depending on the user.
-## Installation & Setup Instructions
-1. Clone or unzip the project:
-    1. git clone <repo-url>
-    2. cd tiger-tix-main
-       
-2. Install dependencies:
-  - At project root:
-    - npm install
-      
-  - Then install for each backend microservice:
-    - cd backend/admin-service -> npm install
-    - cd ../client-service -> npm install
-    - cd ../llm-driven-booking -> npm install
-    - cd ../user-authentication -> npm install
-      
-  - Install frontend dependencies:
-    - cd frontend:
-      - npm install
-        
-3. Run the Services:
-    1. Start Admin Service
-      - cd backend/admin-service
-      - node server.js
-        
-    2. Start Client Service
-      - cd backend/client-service
-      - node server.js
-        
-    3. Start LLM Booking Service
-      - cd backend/llm-driven-booking
-      - node server.js
-        
-    4. Start User Auth Service
-      - cd backend/user-authentication
-      - node server.js
-        
-    5. Start React Frontend
-      - cd frontend
-      - npm start
-## Environment Variables Setup
 
-Each microservice includes a .env.example or uses implicit defaults. Create .env files as follows.
+*For more info on dataflow and dataflow diagram go to* [here](more_info/Architecture.md)
 
-Admin Service (backend/admin-service/.env)
-- PORT=5001
-- DB_PATH=../shared-db/database.sqlite
+## Setup Instructions
 
-Client Service (backend/client-service/.env)
-- PORT=6001
-- DB_PATH=../shared-db/database.sqlite
+### Requirements
+- npm
 
-LLM Booking Service (backend/llm-driven-booking/.env)
-- PORT=7001
-- OPENAI_API_KEY=<your_key_here>
-- CLIENT_SERVICE_URL=http://localhost:6001
-- ADMIN_SERVICE_URL=http://localhost:5001
+### 1. Clone the Repository
 
-Frontend (frontend/.env)
-- VITE_CLIENT_SERVICE_URL=http://localhost:6001/api
-- VITE_ADMIN_SERVICE_URL=http://localhost:5001/api
-- VITE_LLM_URL=http://localhost:7001/api
-    
-## How to run regression tests
-## Team Members, Instructor, TAs, and roles
-Members:
+```bash
+git clone https://github.com/ianray9/tiger-tix.git
+cd tiger-tix
+```
+
+### 2. Install Dependencies
+
+**Backend Dependencies:**
+```bash
+cd backend
+npm install
+```
+
+**Frontend Dependencies:**
+```bash
+cd frontend
+npm install
+```
+
+### 3. Run the Services
+
+#### Option A: Run Microservices Separately
+
+Start the following services in separate terminals:
+
+**Admin Service:**
+```bash
+cd backend/admin-service
+npm start
+```
+
+**Client Service:**
+```bash
+cd backend/client-service
+npm start
+```
+
+**LLM Booking Service:**
+```bash
+cd backend/llm-driven-booking
+npm start
+```
+
+**User Authentication Service:**
+```bash
+cd backend/user-authentication
+npm start
+```
+
+**React Frontend:**
+```bash
+cd frontend
+npm start
+```
+
+#### Option B: Run Through Gateway
+
+Set the `REACT_APP_BACKEND_URL` environment variable to the gateway port:
+```bash
+export REACT_APP_BACKEND_URL="http://localhost:8000"
+```
+
+Start the backend gateway:
+```bash
+cd backend
+npm start
+```
+
+Start the React frontend:
+```bash
+cd frontend
+npm start
+```
+
+### 4. Run Tests
+
+To run the regression tests for the backend:
+```bash
+cd backend
+npm test
+```
+
+## Environment Variables
+
+Each microservice has environment variables that can be configured for non-local deployment. Create `.env` files as follows:
+
+**Admin Service** (`backend/admin-service/.env`):
+```
+PORT=5001
+DB_PATH=../shared-db/database.sqlite
+```
+
+**Client Service** (`backend/client-service/.env`):
+```
+PORT=6001
+DB_PATH=../shared-db/database.sqlite
+```
+
+**LLM Booking Service** (`backend/llm-driven-booking/.env`):
+```
+PORT=7001
+OPENAI_API_KEY=<not set> (with fallback to Regex parsers if no key)
+CLIENT_SERVICE_URL=http://localhost:6001
+ADMIN_SERVICE_URL=http://localhost:5001
+```
+
+**Frontend** (`frontend/.env`):
+```
+REACT_APP_CLIENT_URL=http://localhost:6001/api
+REACT_APP_ADMIN_URL=http://localhost:5001/api
+REACT_APP_LLM_URL=http://localhost:7001/api
+REACT_APP_BACKEND_URL=<not set>
+```
+
+## Team
+
+### Members
+
 | Name | Role |
 |:---:|:---:|
 | Ian Rayburn | Scrum Master/Full-stack Developer |
 | Josue Montalban Cortez | Full-stack Developer |
 | Allan Cruz | Full-stack Developer |
 
-Instructor: Dr. Julian Brinkley
+**Instructor:** Dr. Julian Brinkley
 
-TAs: Colt Doster & Atik Enam
+**TAs:** Colt Doster & Atik Enam
 
-## Link to Demo Vid
-https://drive.google.com/file/d/1Xm1uEvbIMS8t4KRiuoHgtgFcO3cj8SZ4/view?usp=sharing
+## Demo Video
+
+[View Demo Video](https://drive.google.com/file/d/1OzKLM4sHKK7SZtNZ9w3RXOEhx5MikaDh/view?usp=sharing)
 
 ## License
+
 This project is released under the MIT License. For more information, visit: https://choosealicense.com/licenses/mit/.
