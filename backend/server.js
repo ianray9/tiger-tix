@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const express = require('express');
+const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // Ensure shared-db directory exists for SQLite file
@@ -65,17 +66,24 @@ function initializeDatabase() {
 }
 
 // Define all microservices with their actual paths
+// IMPORTANT: Order matters! More specific routes must come before general routes
+// to ensure proper routing (e.g., /api/auth must come before /api)
 const services = [
     { name: "admin-service", path: "./admin-service", port: process.env.ADMIN_PORT || 5001, route: "/api/admin" },
-    { name: "client-service", path: "./client-service", port: process.env.CLIENT_PORT || 6001, route: "/api" },
     { name: "user-authentication", path: "./user-authentication", port: process.env.AUTH_PORT || 7002, route: "/api/auth" },
     { name: "llm-driven-booking", path: "./llm-driven-booking", port: process.env.LLM_PORT || 7001, route: "/api/llm" },
+    { name: "client-service", path: "./client-service", port: process.env.CLIENT_PORT || 6001, route: "/api" },
 ];
 
 // Create gateway server to route requests to microservices
 function createGateway() {
     const gateway = express();
-    gateway.use(express.json());
+    
+    // Enable CORS for all routes
+    gateway.use(cors({
+        origin: process.env.FRONTEND_URL || '*',
+        credentials: true
+    }));
 
     // Root endpoint
     gateway.get('/', (req, res) => {
@@ -92,6 +100,8 @@ function createGateway() {
     });
 
     // Proxy routes to microservices
+    // IMPORTANT: Do not use express.json() before proxying - it consumes the request body stream
+    // Each service will parse the JSON body themselves
     services.forEach(service => {
         const target = `http://localhost:${service.port}`;
         gateway.use(
@@ -102,6 +112,17 @@ function createGateway() {
                 logLevel: 'warn',
                 timeout: 30000, // 30 second timeout
                 proxyTimeout: 30000,
+                // Preserve the full path when forwarding (services expect full paths like /api/auth/login)
+                pathRewrite: (path, req) => {
+                    // Don't rewrite - services already use full paths
+                    return path;
+                },
+                // Log proxy requests in development
+                onProxyReq: (proxyReq, req, res) => {
+                    if (process.env.NODE_ENV !== 'production') {
+                        console.log(`[Gateway] ${req.method} ${req.url} -> ${target}${req.url}`);
+                    }
+                },
                 onError: (err, req, res) => {
                     console.error(`Proxy error for ${service.name}:`, err.message);
                     if (!res.headersSent) {
