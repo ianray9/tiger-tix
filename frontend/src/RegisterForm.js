@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-// Get url
-const authURL = process.env.REACT_APP_AUTH_URL;
+// Get backend URL (gateway URL for production, or use AUTH_URL if set)
+const backendURL = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_AUTH_URL || '';
 
 export default function RegisterForm() {
   const [email, setEmail] = useState('');
@@ -15,7 +15,7 @@ export default function RegisterForm() {
     setError('');
 
     try {
-      const resp = await fetch(`${authURL}/api/auth/register`, {
+      const resp = await fetch(`${backendURL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

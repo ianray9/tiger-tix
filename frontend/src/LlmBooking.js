@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import './LlmBooking.css';
 import { useAuth } from "./AuthContext";
 
+// Get backend URL (gateway URL for production, or use LLM URL if set)
+const backendURL = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_LLM_URL || '';
+
 export default function LlmBooking() {
   const { token, isAuthenticated } = useAuth();
   const [input, setInput] = useState('');
@@ -30,7 +33,7 @@ export default function LlmBooking() {
     setStatus('Parsing…');
 
     try {
-      const resp = await fetch('/api/llm/parse', {
+      const resp = await fetch(`${backendURL}/api/llm/parse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: input })
@@ -82,14 +85,14 @@ export default function LlmBooking() {
     };
 
     try {
-      const resp = await fetch('/api/llm/confirm', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(body)
-});
+      const resp = await fetch(`${backendURL}/api/llm/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
 
 
       const data = await resp.json();

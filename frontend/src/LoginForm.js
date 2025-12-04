@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 
-// Get url
-const authURL = process.env.REACT_APP_AUTH_URL;
+// Get backend URL (gateway URL for production, or use AUTH_URL if set)
+const backendURL = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_AUTH_URL || '';
 
 export default function LoginForm() {
   const { login } = useAuth();
@@ -15,7 +15,7 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const resp = await fetch(`${authURL}/api/auth/login`, {
+      const resp = await fetch(`${backendURL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

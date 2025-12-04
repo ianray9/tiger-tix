@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
-// Get urls
-const clientURL = process.env.REACT_APP_CLIENT_URL;
+// Get backend URL (gateway URL for production, or use CLIENT_URL if set)
+const backendURL = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_CLIENT_URL || '';
 
 import './App.css';
 import LlmBooking from "./LlmBooking";
@@ -20,7 +20,7 @@ function App() {
 
   // Centralized fetch function so UI can refresh
   const fetchEvents = () => {
-    fetch(`${clientURL}/api/events`)
+    fetch(`${backendURL}/api/events`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch events');
         return res.json();
@@ -56,7 +56,7 @@ function App() {
         return;
       }
 
-      const response = await fetch(`${clientURL}/api/events/${eventId}/purchase`, {
+      const response = await fetch(`${backendURL}/api/events/${eventId}/purchase`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

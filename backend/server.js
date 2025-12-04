@@ -80,9 +80,34 @@ function createGateway() {
     const gateway = express();
     
     // Enable CORS for all routes
+    // Support multiple origins (local dev and Vercel production)
+    const allowedOrigins = process.env.FRONTEND_URL 
+        ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+        : ['*'];
+    
     gateway.use(cors({
-        origin: process.env.FRONTEND_URL || '*',
-        credentials: true
+        origin: (origin, callback) => {
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) return callback(null, true);
+            
+            // If '*' is in allowedOrigins, allow all
+            if (allowedOrigins.includes('*')) return callback(null, true);
+            
+            // Check if origin is in allowed list
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+            
+            // For development, allow localhost
+            if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) {
+                return callback(null, true);
+            }
+            
+            callback(new Error('Not allowed by CORS'));
+        },
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
     }));
 
     // Root endpoint
