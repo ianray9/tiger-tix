@@ -30,11 +30,38 @@ export default function LoginForm() {
         body: JSON.stringify({ email, password })
       });
 
-      const data = await resp.json();
+      console.log('Login response status:', resp.status, resp.statusText);
+      console.log('Login response headers:', Object.fromEntries(resp.headers.entries()));
+
+      // Check if response has content before parsing
+      const contentType = resp.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        const text = await resp.text();
+        console.log('Login response body:', text);
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (parseErr) {
+          console.error('Failed to parse JSON:', parseErr, 'Response text:', text);
+          setError(`Login failed: Invalid response from server (${resp.status})`);
+          return;
+        }
+      } else {
+        console.warn('No JSON content-type, status:', resp.status);
+        data = {};
+      }
 
       if (!resp.ok) {
         console.error('Login failed:', { status: resp.status, data });
         setError(data.error || `Login failed (${resp.status})`);
+        return;
+      }
+
+      // Success!
+      console.log('Login successful:', data);
+      if (!data.token) {
+        setError('Login failed: No token received from server');
         return;
       }
 

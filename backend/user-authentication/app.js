@@ -53,8 +53,10 @@ function createApp(db) {
 
     // Middleware
     app.use(express.json());
+    // CORS is handled by the gateway, but allow all origins here as fallback
+    // The gateway will enforce proper CORS policies
     app.use(cors({
-        origin: 'http://localhost:3000',
+        origin: process.env.FRONTEND_URL || '*',
         credentials: true,
     }));
 

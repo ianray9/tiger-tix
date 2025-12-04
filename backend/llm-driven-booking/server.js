@@ -1,11 +1,17 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const bodyParser = require('body-parser');
 const { askLLMToParse } = require('./llmParseService');
 const verifyJwt = require('./authMiddleware');
 const { getEventByName, getEventById, bookTickets } = require('./db');
 
 const app = express();
+// CORS is handled by the gateway, but allow all origins here as fallback
+app.use(cors({
+    origin: process.env.FRONTEND_URL || '*',
+    credentials: true,
+}));
 app.use(bodyParser.json());
 
 
